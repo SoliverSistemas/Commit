@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/home.css') }}">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>Painel</h2>
+            <nav>
+                <a href="/admin" class="active">Pizzarias</a>
+                <a href="/admin/pizzaria/nova">Nova Pizzaria</a>
+                <a href="/admin/logout">Sair</a>
+            </nav>
+        </aside>
+        <main class="main">
+            <div class="header">
+                <div>
+                    <h1>Pizzarias</h1>
+                    <span>Gerencie todas as pizzarias do sistema</span>
+                </div>
+                <a href="/admin/pizzaria/nova" class="btn-primary">
+                    + Nova Pizzaria
+                </a>
+            </div>
+            <div class="grid">
+                {% for pizzaria in pizzarias %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3>{{ pizzaria.nome }}</h3>
+                        <span class="slug">{{ pizzaria.slug }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="info">
+                            <span>WhatsApp:</span>
+                            <strong>{{ pizzaria.whatsapp }}</strong>
+                        </div>
+                        <div class="info">
+                            <span>URL pública:</span>
+                            <a target="_blank" href="/{{ pizzaria.slug }}">/{{ pizzaria.slug }}</a>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <a href="/admin/pizzaria/{{ pizzaria.id }}/editar" class="btn-edit">
+                            Editar
+                        </a>
+                        <button class="btn-delete" onclick="removePizzaria('{{ pizzaria.id }}')">
+                            Excluir
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+    <script>
+        async function removePizzaria(id) {
+            if (!confirm("Tem certeza que deseja excluir esta pizzaria?")) return;
+            const res = await fetch(`/admin/api/pizzarias/${id}`, { method: "DELETE" });
+            if (!res.ok) return alert("Erro ao excluir");
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
