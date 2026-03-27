@@ -1,175 +1,479 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ pizzaria.nome }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        :root {
-            --bg-main: {{ pizzaria.cor_fundo_principal }};
-            --bg-secondary: {{ pizzaria.cor_fundo_secundario }};
-            --title-color: {{ pizzaria.cor_titulos }};
-            --text-color: {{ pizzaria.cor_texto }};
-            --text-soft: {{ pizzaria.cor_texto_secundario }};
-            --btn-primary-bg: {{ pizzaria.botao_primario_bg }};
-            --btn-primary-color: {{ pizzaria.botao_primario_texto }};
-            --btn-primary-hover: {{ pizzaria.botao_primario_hover }};
-            --btn-secondary-bg: {{ pizzaria.botao_secundario_bg }};
-            --btn-secondary-color: {{ pizzaria.botao_secundario_texto }};
-            --btn-secondary-hover: {{ pizzaria.botao_secundario_hover }};
-            --btn-highlight-bg: {{ pizzaria.botao_destaque_bg }};
-            --btn-highlight-color: {{ pizzaria.botao_destaque_texto }};
-            --btn-highlight-hover: {{ pizzaria.botao_destaque_hover }};
-            --btn-neutral-bg: {{ pizzaria.botao_neutro_bg }};
-            --btn-neutral-color: {{ pizzaria.botao_neutro_texto }};
-            --btn-neutral-hover: {{ pizzaria.botao_neutro_hover }};
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_new_elements.css') }}">
 </head>
+
 <body>
-    <div class="page-shell">
-        <header class="hero-card" style="background-image: linear-gradient(120deg, rgba(4,8,15,.5), rgba(4,8,15,.15)), url('{{ pizzaria.banner_url }}')">
-            <div class="hero-content">
-                <div class="hero-brand">
-                    {% if pizzaria.logo_url %}
-                        <img class="brand-image" src="{{ pizzaria.logo_url }}" alt="Marca da pizzaria">
-                    {% else %}
-                        <div class="brand-fallback">{{ pizzaria.nome }}</div>
-                    {% endif %}
-                    <div class="hero-title-wrap">
-                        <h1>{{ pizzaria.nome }}</h1>
-                        <div class="status-chip">{% if aberta %}Aberto agora{% else %}Fechado no momento{% endif %}</div>
+    <!-- Verificar se pizzaria está desativada -->
+    {% if pizzaria.status == 'desativado' %}
+    <div class="site-desativado">
+        <div class="desativado-content">
+            <div class="desativado-icon">🚫</div>
+            <h1>Site Desativado</h1>
+            <p>Este site está temporariamente desativado.</p>
+            <p>Para fazer pedidos, entre em contato pelo WhatsApp:</p>
+            <a href="https://wa.me/55{{ pizzaria.whatsapp.replace('(', '').replace(')', '').replace('-', '').replace(' ', '') }}"
+                class="whatsapp-btn" target="_blank">
+                📱 {{ pizzaria.whatsapp }}
+            </a>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Header Banner -->
+            {% if pizzaria.banner_url %}
+            <div class="header-banner">
+                <img src="{{ pizzaria.banner_url }}" alt="Banner {{ pizzaria.nome }}">
+            </div>
+            {% endif %}
+
+            <!-- Header -->
+            <header class="header">
+                <div class="header-top">
+                    <div class="brand">
+                        {% if pizzaria.logo_url %}
+                        <img class="brand-logo" src="{{ pizzaria.logo_url }}" alt="{{ pizzaria.nome }}">
+                        {% else %}
+                        <div class="brand-logo fallback">🍕</div>
+                        {% endif %}
+                        <span class="brand-name">{{ pizzaria.nome }}</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-cart" onclick="toggleCartSidebar(true)" type="button">
+                            <span class="icon">🛒</span> Carrinho
+                        </button>
+                        <button id="suggestOrderBtn" class="btn-suggest" type="button">
+                            <span class="icon">🤖</span> Sugerir Pedido
+                        </button>
+                        <button id="repeatOrderBtn" class="btn-repeat" type="button">
+                            <span class="icon">↻</span> Repetir Pedido
+                        </button>
                     </div>
                 </div>
-                <div class="hero-quick-actions">
-                    <button class="btn-secondary" onclick="toggleStoreInfo(true)">Ver mais</button>
-                    <a class="btn-neutral" href="https://wa.me/{{ pizzaria.whatsapp }}" target="_blank">WhatsApp</a>
+
+                <!-- Search -->
+                <div class="search-bar">
+                    <span class="search-icon">⌕</span>
+                    <input id="productSearch" type="search" placeholder="O que deseja pedir hoje?" autocomplete="off">
+                    <button class="search-help" type="button" onclick="toggleStoreInfo(true)">💡</button>
                 </div>
-            </div>
-        </header>
 
-        <section class="store-meta-grid">
-            <article class="meta-card">
-                <span class="meta-label">Tempo de entrega</span>
-                <strong>{{ pizzaria.tempo_entrega_min }}-{{ pizzaria.tempo_entrega_max }} min</strong>
-            </article>
-            <article class="meta-card">
-                <span class="meta-label">Atendimento</span>
-                <strong>{{ pizzaria.horario_abertura }} - {{ pizzaria.horario_fechamento }}</strong>
-            </article>
-            <article class="meta-card">
-                <span class="meta-label">Endereco</span>
-                <strong>{{ pizzaria.endereco or 'Endereco nao informado' }}</strong>
-            </article>
-        </section>
-    </div>
+                <!-- Info Bar -->
+                <div class="info-bar">
+                    <div class="info-item">
+                        <span class="info-icon">📞</span>
+                        <span class="info-text">{{ pizzaria.whatsapp }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">📍</span>
+                        <span class="info-text">{{ pizzaria.endereco or 'Av. Paulista, 123, São Paulo - SP' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">⏰</span>
+                        <span class="info-text">Aberto das {{ pizzaria.horario_abertura }} às {{
+                            pizzaria.horario_fechamento }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-icon">🚚</span>
+                        <span class="info-text">{{ pizzaria.tempo_entrega_min }}-{{ pizzaria.tempo_entrega_max }}
+                            min</span>
+                    </div>
+                </div>
+            </header>
 
-    <div id="storeInfoModal" class="modal hidden">
-        <div class="modal-content store-info-modal">
-            <button class="close" onclick="toggleStoreInfo(false)">x</button>
-            <h3>Informacoes da pizzaria</h3>
-            <p><strong>WhatsApp:</strong> {{ pizzaria.whatsapp }}</p>
-            <p><strong>Endereco:</strong> {{ pizzaria.endereco }}</p>
-            <p><strong>Horario:</strong> {{ pizzaria.horario_abertura }} ate {{ pizzaria.horario_fechamento }}</p>
-        </div>
-    </div>
-
-    <nav class="categorias-nav">
-        <div class="categorias-inner">
-            {% for categoria in categorias %}
-                <button class="categoria-btn {{ categoria.button_variant }}" data-target="categoria-{{ categoria.id }}">
-                    {{ categoria.icone }} {{ categoria.nome }}
-                </button>
-            {% endfor %}
-        </div>
-    </nav>
-
-    <main class="cardapio">
-        {% for categoria in categorias %}
-            <section id="categoria-{{ categoria.id }}" class="categoria-section">
-                <header class="categoria-header">
-                    <h2>{{ categoria.nome }}</h2>
-                    <span>{{ (produtos | selectattr('categoria_id', 'equalto', categoria.id) | list | length) }} itens</span>
-                </header>
-                <div class="produtos-grid">
-                    {% for produto in produtos if produto.categoria_id == categoria.id %}
-                        <article class="produto-card">
-                            {% if produto.imagem_url %}<img loading="lazy" src="{{ produto.imagem_url }}" alt="{{ produto.nome }}">{% endif %}
-                            <div class="produto-info">
-                                <strong>{{ produto.nome }}</strong>
-                                <p>{{ produto.descricao }}</p>
-                                <div class="produto-footer">
-                                    <span class="price-pill">A partir de R$ {{ "%.2f"|format(produto.preco_base|float) }}</span>
-                                    <button class="btn-primary" onclick="openProductModal('{{ produto.id }}')">{{ pizzaria.texto_botao_mais }}</button>
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
+            <!-- About Section -->
+            <section class="about-section">
+                <div class="about-image">
+                    {% if pizzaria.banner_url %}
+                    <img src="{{ pizzaria.banner_url }}" alt="Sobre {{ pizzaria.nome }}">
+                    {% else %}
+                    <div class="about-image-placeholder">🏪</div>
+                    {% endif %}
+                </div>
+                <div class="about-content">
+                    <h2>Sobre Nossa Pizzaria</h2>
+                    <p>
+                        {% if pizzaria.sobre %}
+                        {{ pizzaria.sobre }}
+                        {% else %}
+                        Bem-vindo à <strong>{{ pizzaria.nome }}</strong>, onde servimos pizzas artesanais feitas com
+                        ingredientes frescos e selecionados. Estamos localizados na Av. Paulista, 123, em São Paulo, e
+                        somos conhecidos por nossas pizzas deliciosas e nossas entregas rápidas!
+                        {% endif %}
+                    </p>
+                    <!-- Cupons visíveis -->
+                    <div id="cuponsDisplay" class="cupons-display"></div>
                 </div>
             </section>
-        {% endfor %}
-    </main>
+
+            <div id="storeInfoModal" class="modal hidden">
+                <div class="modal-content store-info-modal">
+                    <button class="close" onclick="toggleStoreInfo(false)">x</button>
+                    <h3>Informacoes da pizzaria</h3>
+                    <p><strong>WhatsApp:</strong> {{ pizzaria.whatsapp }}</p>
+                    <p><strong>Endereco:</strong> {{ pizzaria.endereco }}</p>
+                    <p><strong>Horario:</strong> {{ pizzaria.horario_abertura }} ate {{ pizzaria.horario_fechamento }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Categories Normal -->
+            <nav class="categories-nav">
+                {% for categoria in categorias %}
+                {% if not categoria.parent_id %}
+                <button class="category-btn {{ categoria.button_variant }}" data-target="categoria-{{ categoria.id }}"
+                    onclick="toggleCategorySubmenu('{{ categoria.id }}')">
+                    {{ categoria.icone }} {{ categoria.nome }}
+                    {% if categoria.subcategorias %}
+                    <span class="arrow">▼</span>
+                    {% endif %}
+                </button>
+
+                <!-- Subcategories Menu -->
+                {% if categoria.subcategorias %}
+                <div class="subcategories-menu" id="submenu-{{ categoria.id }}" style="display: none;">
+                    {% for subcat in categoria.subcategorias %}
+                    <button class="subcategory-btn {{ subcat.button_variant }}" data-target="categoria-{{ subcat.id }}"
+                        onclick="scrollToCategory('categoria-{{ subcat.id }}')">
+                        <span class="subcategory-icon">→</span>
+                        {{ subcat.nome }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+            </nav>
+
+            <!-- Categories Sticky Dropdown (aparece quando rola) -->
+            <div class="categories-sticky" id="categoriesSticky">
+                <div class="categories-dropdown" id="categoriesDropdown">
+                    <button class="categories-toggle" onclick="toggleCategories()">
+                        <span>Categorias</span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="categories-menu">
+                        {% for categoria in categorias %}
+                        {% if not categoria.parent_id %}
+                        <div class="category-group">
+                            <button class="category-btn {{ categoria.button_variant }}"
+                                data-target="categoria-{{ categoria.id }}"
+                                onclick="toggleMobileSubmenu('{{ categoria.id }}')">
+                                {{ categoria.icone }} {{ categoria.nome }}
+                                {% if categoria.subcategorias %}
+                                <span class="arrow">▼</span>
+                                {% endif %}
+                            </button>
+
+                            <!-- Mobile Subcategories -->
+                            {% if categoria.subcategorias %}
+                            <div class="mobile-subcategories" id="mobile-submenu-{{ categoria.id }}"
+                                style="display: none;">
+                                {% for subcat in categoria.subcategorias %}
+                                <button class="subcategory-btn {{ subcat.button_variant }}"
+                                    data-target="categoria-{{ subcat.id }}"
+                                    onclick="scrollToCategory('categoria-{{ subcat.id }}'); toggleCategories();">
+                                    <span class="subcategory-icon">→</span>
+                                    {{ subcat.nome }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products List -->
+            <main class="products-list" id="productsList">
+                <div id="searchInfo" class="search-info hidden"></div>
+                <div id="searchEmptyState" class="search-empty-state hidden">
+                    <div class="empty-state-content">
+                        <h3>Nenhum produto encontrado</h3>
+                        <p>Tente usar outros termos ou verifique a ortografia.</p>
+                    </div>
+                </div>
+                {% for categoria in categorias %}
+                {% if not categoria.parent_id %}
+                <section id="categoria-{{ categoria.id }}" class="category-section">
+                    <h2 class="category-title">{{ categoria.nome }}</h2>
+                    {% for produto in produtos if produto.categoria_id == categoria.id %}
+                    <article class="product-card" onclick="openProductModal('{{ produto.id }}')"
+                        data-search-text="{{ (produto.nome ~ ' ' ~ produto.descricao ~ ' ' ~ categoria.nome)|lower }}">
+                        <div class="product-image">
+                            {% if produto.imagem_url %}
+                            <img loading="lazy" src="{{ produto.imagem_url }}" alt="{{ produto.nome }}">
+                            {% else %}
+                            <div class="product-image-placeholder">🍕</div>
+                            {% endif %}
+                        </div>
+                        <div class="product-details">
+                            <h3 class="product-name">{{ produto.nome }}</h3>
+                            <p class="product-description">{{ produto.descricao }}</p>
+                            <div class="product-footer">
+                                <span class="product-price">R$ {{ "%.2f"|format(produto.preco_base|float) }}</span>
+                                <button class="btn-view-more"
+                                    onclick="event.stopPropagation(); openProductModal('{{ produto.id }}')">
+                                    Ver Mais <span class="arrow">›</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </section>
+                {% endif %}
+
+                <!-- Renderizar subcategorias -->
+                {% if categoria.parent_id %}
+                <section id="categoria-{{ categoria.id }}" class="category-section subcategory-section">
+                    <h2 class="category-title subcategory-title">{{ categoria.nome }}</h2>
+                    {% for produto in produtos if produto.categoria_id == categoria.id %}
+                    <article class="product-card" onclick="openProductModal('{{ produto.id }}')"
+                        data-search-text="{{ (produto.nome ~ ' ' ~ produto.descricao ~ ' ' ~ categoria.nome)|lower }}">
+                        <div class="product-image">
+                            {% if produto.imagem_url %}
+                            <img loading="lazy" src="{{ produto.imagem_url }}" alt="{{ produto.nome }}">
+                            {% else %}
+                            <div class="product-image-placeholder">🍕</div>
+                            {% endif %}
+                        </div>
+                        <div class="product-details">
+                            <h3 class="product-name">{{ produto.nome }}</h3>
+                            <p class="product-description">{{ produto.descricao }}</p>
+                            <div class="product-footer">
+                                <span class="product-price">R$ {{ "%.2f"|format(produto.preco_base|float) }}</span>
+                                <button class="btn-view-more"
+                                    onclick="event.stopPropagation(); openProductModal('{{ produto.id }}')">
+                                    Ver Mais <span class="arrow">›</span>
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </section>
+                {% endif %}
+                {% endfor %}
+                <div id="searchEmptyState" class="search-empty hidden">Nenhum produto encontrado para sua pesquisa.
+                </div>
+            </main>
+        </div>
+
+        <!-- Cart Sidebar - Desktop Only (Visible by default) -->
+        <aside id="cartSidebar" class="cart-sidebar">
+            <div class="cart-header">
+                <h3>Seu Carrinho</h3>
+                <button class="close-cart-btn" onclick="toggleCartSidebar(false)">×</button>
+            </div>
+            <div id="cartItems" class="cart-items">
+                <div class="cart-empty">Carrinho vazio</div>
+            </div>
+            <div class="cart-suggestions" id="cartCategoryButtons">
+                {% for categoria in categorias %}
+                {% if not categoria.parent_id %}
+                <div class="suggestion-group">
+                    <button class="suggestion-item" onclick="scrollToCategory('categoria-{{ categoria.id }}')">
+                        <span class="suggestion-icon">{{ categoria.icone or '➕' }}</span>
+                        <span class="suggestion-text">{{ categoria.nome }}</span>
+                    </button>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span id="cartItemCount">0 items</span>
+                    <span id="cartSubtotal">-</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <strong id="cartTotal">R$ 0,00</strong>
+                </div>
+            </div>
+            <button class="btn-checkout" onclick="toggleCartDrawer(true)">Finalizar Pedido</button>
+            <div class="cart-sidebar-actions">
+                <button class="cart-btn-clear" onclick="clearCart()">🗑️ Apagar Carrinho</button>
+                <button class="cart-btn-repeat" onclick="repeatLastOrderFromHistory()">↻ Repetir Pedido</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Botão Flutuante de Sugestão de Pedido -->
+    <button id="sugestaoPedidoBtn" class="sugestao-pedido-btn">
+        <span class="sugestao-icon">🎯</span>
+        <span class="sugestao-text">O que você deseja pedir?</span>
+    </button>
+
+    <!-- Modal de Sugestão de Pedido -->
+    <div id="sugestaoModal" class="sugestao-modal hidden">
+        <div class="sugestao-backdrop" onclick="closeSugestaoModal()"></div>
+        <div class="sugestao-content">
+            <div class="sugestao-header">
+                <h3>🎯 O que você deseja pedir?</h3>
+                <button class="sugestao-close" onclick="closeSugestaoModal()">×</button>
+            </div>
+            <div class="sugestao-body">
+                <div id="sugestaoCategorias" class="sugestao-categorias"></div>
+                <div id="sugestaoResult" class="sugestao-result hidden">
+                    <div class="sugestao-mensagem"></div>
+                    <div id="sugestaoProdutos" class="sugestao-produtos"></div>
+                    <button id="sugestaoNovamenteBtn" class="btn-primary">Sugerir Novamente</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="productModal" class="modal hidden">
         <div class="modal-content">
-            <button class="close" onclick="closeProductModal()">x</button>
+            <button class="close" onclick="closeProductModal()">×</button>
             <div id="productModalBody"></div>
             <div class="modal-actions">
                 <button class="btn-neutral" onclick="cancelProductFlow()">{{ pizzaria.texto_botao_cancelar }}</button>
-                <button class="btn-secondary" id="repeatButton" onclick="repeatLastConfig()" style="display:none;">Repetir pedido</button>
-                <button class="btn-primary" id="wizardPrimaryButton" onclick="handleWizardPrimary()">{{ pizzaria.texto_botao_finalizar }}</button>
+                <button class="btn-secondary" id="repeatButton" onclick="repeatLastConfig()"
+                    style="display:none;">Repetir pedido</button>
+                <button class="btn-primary" id="wizardPrimaryButton" onclick="handleWizardPrimary()">{{
+                    pizzaria.texto_botao_finalizar }}</button>
             </div>
         </div>
     </div>
 
     <aside id="cartDrawer" class="cart-drawer hidden">
-        <div class="cart-header">
-            <h3>Resumo do pedido</h3>
-            <button class="close" onclick="toggleCartDrawer(false)">x</button>
-        </div>
-        <div id="cartItems"></div>
-        <div class="customer-form">
-            <input id="customerName" placeholder="Nome">
-            <input id="customerPhone" placeholder="Telefone">
-            <input id="customerCep" placeholder="CEP (ex: 01001-000)">
-            <input id="customerAddress" placeholder="Endereco completo">
-            <input id="customerComplement" placeholder="Complemento">
-            <button class="btn-secondary" onclick="calculateDeliveryByAddress()">Calcular frete pelo endereco</button>
-            <p class="frete-hint" id="freteHint">Informe CEP e endereco para calcular o frete automaticamente.</p>
-            <select id="customerPayment">
-                <option>PIX</option>
-                <option>Cartao</option>
-                <option>Dinheiro</option>
-            </select>
-            <textarea id="customerObs" placeholder="Observacoes"></textarea>
-        </div>
-        <div class="cart-totals">
-            <p>Subtotal: <strong id="subtotalValue">R$ 0,00</strong></p>
-            <p>Frete: <strong id="deliveryValue">R$ 0,00</strong></p>
-            <p>Total: <strong id="totalValue">R$ 0,00</strong></p>
-        </div>
-        <div class="cart-actions">
-            <button class="btn-neutral" onclick="clearCart()">Apagar carrinho</button>
-            <button class="btn-primary" id="checkoutBtn" onclick="checkoutWhatsapp()">{{ pizzaria.texto_botao_finalizar }}</button>
-            <button class="btn-highlight" onclick="toggleCartDrawer(false)">Adicionar item</button>
+        <div class="cart-modal">
+            <div class="cart-header">
+                <h3>Resumo do pedido</h3>
+                <button class="close" onclick="toggleCartDrawer(false)">×</button>
+            </div>
+            <div id="cartDrawerItems"></div>
+            <div class="customer-form">
+                <input id="customerName" placeholder="Nome">
+                <input id="customerPhone" placeholder="Telefone">
+                <div class="cep-input-group">
+                    <input id="customerCep" placeholder="CEP (ex: 01001-000)">
+                    <button type="button" class="btn-location" onclick="getCurrentLocation()"
+                        title="Usar minha localização">📍</button>
+                </div>
+                <input id="customerAddress" placeholder="Endereco completo">
+                <input id="customerComplement" placeholder="Complemento">
+                <button class="btn-secondary" onclick="calculateDeliveryByAddress()">Calcular frete pelo
+                    endereco</button>
+                <p class="frete-hint" id="freteHint">Informe o CEP para calcular o frete automaticamente ou use o botão
+                    📍 para usar sua localização.</p>
+                <select id="customerPayment">
+                    <option>PIX</option>
+                    <option>Cartao</option>
+                    <option>Dinheiro</option>
+                </select>
+                <textarea id="customerObs" placeholder="Observacoes"></textarea>
+                <div class="coupon-section" id="couponSection">
+                    <input id="couponCode" placeholder="Código do cupom (opcional)">
+                    <button type="button" class="btn-secondary" onclick="applyCoupon()">Aplicar</button>
+                </div>
+                <div id="couponDiscount" class="coupon-discount hidden">
+                    <span>Desconto:</span>
+                    <strong id="discountValue">- R$ 0,00</strong>
+                </div>
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span id="subtotalValue">-</span>
+                    </div>
+                    <div class="summary-row" id="deliveryRow">
+                        <span>Frete</span>
+                        <span id="deliveryValue">Calcular frete</span>
+                    </div>
+                    <div class="summary-row hidden" id="discountRow">
+                        <span>Desconto</span>
+                        <span id="discountDisplay">- R$ 0,00</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total</span>
+                        <span id="totalValue">-</span>
+                    </div>
+                </div>
+                <div class="cart-actions">
+                    <button class="btn-cancel" onclick="toggleCartDrawer(false)">CANCELAR</button>
+                    <button class="btn-checkout" onclick="checkoutWhatsapp()">Finalizar pedido</button>
+                </div>
+            </div>
         </div>
     </aside>
+
+    <!-- Suggest Order Modal -->
+    <div id="suggestOrderModal" class="modal hidden">
+        <div class="modal-content suggest-modal">
+            <button class="close" onclick="closeSuggestModal()">×</button>
+            <h3>🤖 Sugerir Pedido</h3>
+            <div id="suggestOrderContent">
+                <p>Baseado no seu histórico, sugerimos:</p>
+                <div id="suggestedProduct" class="suggested-product"></div>
+                <div id="suggestedOptions" class="suggested-options"></div>
+            </div>
+            <div class="suggest-actions">
+                <button class="btn-neutral" onclick="closeSuggestModal()">Cancelar</button>
+                <button class="btn-secondary" onclick="refreshSuggestion()">🔄 Sugerir Novamente</button>
+                <button class="btn-primary" onclick="addSuggestedToCart()">Adicionar ao Carrinho</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="confirm-modal">
+                <h3 id="confirmTitle">Confirmar Ação</h3>
+                <p id="confirmMessage">Tem certeza que deseja continuar?</p>
+                <div class="confirm-actions">
+                    <button class="btn-neutral" id="confirmCancelBtn">Cancelar</button>
+                    <button class="btn-primary" id="confirmBtn">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Modal -->
+    <div id="notificationModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="notification-modal">
+                <div class="notification-icon" id="notificationIcon">ℹ️</div>
+                <h3 id="notificationTitle">Notificação</h3>
+                <p id="notificationMessage">Mensagem da notificação</p>
+                <div class="notification-actions">
+                    <button class="btn-primary" id="notificationOkBtn">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <footer id="floatingCart" class="floating-cart hidden">
         <span id="floatingCount">0 itens</span>
         <strong id="floatingTotal">R$ 0,00</strong>
-        <button class="btn-highlight" onclick="toggleCartDrawer(true)">{{ pizzaria.texto_botao_ver_mais }}</button>
+        <button class="btn-highlight" onclick="toggleCartDrawer(true)">Ver Carrinho <span
+                class="ver-mais-arrow">›</span></button>
     </footer>
 
+    <script id="appDataJson" type="application/json">{{ {
+        "pizzaria": pizzaria,
+        "categorias": categorias,
+        "produtos": produtos,
+        "freteRegras": frete_regras
+    } | tojson }}</script>
     <script>
-        window.__APP_DATA__ = {
-            pizzaria: {{ pizzaria | tojson }},
-            categorias: {{ categorias | tojson }},
-            produtos: {{ produtos | tojson }},
-            freteRegras: {{ frete_regras | tojson }}
-        };
+        window.__APP_DATA__ = JSON.parse(document.getElementById("appDataJson").textContent);
     </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
+
 </html>

@@ -29,6 +29,8 @@ create table if not exists pizzarias (
     cor_titulos text not null default '#f9fafb',
     cor_texto text not null default '#e5e7eb',
     cor_texto_secundario text not null default '#94a3b8',
+    cor_surface text not null default '#ffffff',
+    cupons jsonb not null default '{}',
     botao_primario_bg text not null default '#ef4444',
     botao_primario_texto text not null default '#ffffff',
     botao_primario_hover text not null default '#dc2626',
@@ -45,6 +47,7 @@ create table if not exists pizzarias (
     texto_botao_finalizar text not null default 'Finalizar pedido',
     texto_botao_cancelar text not null default 'Cancelar',
     texto_botao_ver_mais text not null default 'Ver mais',
+    sobre text not null default '',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );

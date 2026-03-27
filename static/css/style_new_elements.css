@@ -1,0 +1,233 @@
+/* ============================================
+   HEADER BANNER
+   ============================================ */
+.header-banner {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+
+.header-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (min-width: 768px) {
+    .header-banner {
+        height: 300px;
+    }
+}
+
+/* ============================================
+   CATEGORY TITLE
+   ============================================ */
+.category-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--title-color, #1a1a1a);
+    padding: 20px 0 12px;
+    margin: 0;
+    border-bottom: 2px solid var(--stroke, #e5e5e5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   PRODUCTS LIST - MOBILE MARGIN
+   ============================================ */
+@media (max-width: 1023px) {
+    .products-list {
+        padding-bottom: 100px;
+    }
+}
+
+/* ============================================
+   COUPON SECTION
+   ============================================ */
+.coupon-section {
+    display: flex;
+    gap: 12px;
+}
+
+.coupon-section input {
+    flex: 1;
+}
+
+.coupon-discount {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--btn-highlight-bg, #ffc107) 15%, transparent);
+    border-radius: 10px;
+    font-size: 1rem;
+    color: var(--text-color, #333);
+}
+
+.coupon-discount strong {
+    color: var(--btn-highlight-color, #1a1a1a);
+    font-weight: 700;
+}
+
+/* ============================================
+   SUGGEST ORDER MODAL
+   ============================================ */
+.suggest-modal {
+    max-width: 500px;
+}
+
+.suggested-product {
+    background: var(--surface-2, #f8f9fa);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 16px 0;
+}
+
+.suggested-product-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.suggested-product-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.suggested-product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.suggested-product-info h4 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--title-color, #1a1a1a);
+    margin-bottom: 4px;
+}
+
+.suggested-product-info p {
+    font-size: 1rem;
+    color: var(--text-soft, #666);
+}
+
+.suggested-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.suggested-option-group {
+    background: var(--surface-1, #fff);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--stroke, #e5e5e5);
+}
+
+.suggested-option-group h5 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-soft, #666);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.suggested-option-group p {
+    font-size: 1rem;
+    color: var(--text-color, #333);
+    font-weight: 500;
+}
+
+.suggest-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--stroke, #e5e5e5);
+    flex-wrap: wrap;
+}
+
+.suggest-actions button {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* ============================================
+   ABOUT SECTION - PERSONALIZED TEXT
+   ============================================ */
+.about-content h2 {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--title-color, #1a1a1a);
+    margin-bottom: 16px;
+    font-style: italic;
+}
+
+@media (min-width: 768px) {
+    .about-content h2 {
+        font-size: 1.75rem;
+    }
+}
+
+.about-content p {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 1rem;
+    color: var(--text-color, #333);
+    line-height: 1.8;
+    font-style: italic;
+}
+
+@media (min-width: 768px) {
+    .about-content p {
+        font-size: 1.125rem;
+    }
+}
+
+/* ============================================
+   PRODUCT IMAGE - SQUARE LEFT FULL HEIGHT
+   ============================================ */
+.product-image {
+    flex-shrink: 0;
+    width: 120px;
+    align-self: stretch;
+    min-height: 120px;
+    overflow: hidden;
+}
+
+@media (min-width: 480px) {
+    .product-image {
+        width: 140px;
+        min-height: 140px;
+    }
+}
+
+@media (min-width: 768px) {
+    .product-image {
+        width: 160px;
+        min-height: 160px;
+    }
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Discount row in cart totals */
+#discountRow {
+    color: var(--btn-highlight-bg, #f59e0b);
+}
+
+#discountRow strong {
+    color: var(--btn-highlight-bg, #f59e0b);
+}

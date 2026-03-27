@@ -363,6 +363,8 @@ def admin_pizzarias():
         "cor_titulos": data.get("cor_titulos", "#f9fafb"),
         "cor_texto": data.get("cor_texto", "#e5e7eb"),
         "cor_texto_secundario": data.get("cor_texto_secundario", "#94a3b8"),
+        "cor_surface": data.get("cor_surface", "#ffffff"),
+        "cupons": data.get("cupons", {}),
         "botao_primario_bg": data.get("botao_primario_bg", "#ef4444"),
         "botao_primario_texto": data.get("botao_primario_texto", "#ffffff"),
         "botao_primario_hover": data.get("botao_primario_hover", "#dc2626"),
@@ -379,9 +381,61 @@ def admin_pizzarias():
         "texto_botao_finalizar": data.get("texto_botao_finalizar", "Finalizar pedido"),
         "texto_botao_cancelar": data.get("texto_botao_cancelar", "Cancelar"),
         "texto_botao_ver_mais": data.get("texto_botao_ver_mais", "Ver mais"),
+        "status": data.get("status", "ativo"),
     }
     created = supabase.table("pizzarias").insert(payload).execute().data[0]
     return ok({"item": created}, 201)
+
+
+@app.route("/admin/api/pizzarias/<pizzaria_id>/cupons", methods=["PUT"])
+@login_required
+def admin_pizzaria_cupons(pizzaria_id):
+    """Endpoint específico para salvar cupons na tabela separada"""
+    data = parse_json()
+    cupons = data.get("cupons", [])
+
+    print(f"DEBUG: Salvando cupons para pizzaria {pizzaria_id}")
+    print(f"DEBUG: Cupons recebidos: {cupons}")
+
+    if not cupons:
+        print("DEBUG: Lista de cupons vazia, nada para salvar")
+        return ok({"message": "Nenhum cupom para salvar"})
+
+    try:
+        import requests
+
+        supabase_url = os.environ.get('SUPABASE_URL', '')
+        api_key = os.environ.get('SUPABASE_KEY', '')
+
+        headers = {
+            "apikey": api_key,
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+
+        # Inserir cupons via HTTP direto (bypass schema cache)
+        insert_url = f"{supabase_url}/rest/v1/cupons"
+        for cupom in cupons:
+            payload = {
+                "pizzaria_id": pizzaria_id,
+                "codigo": cupom["codigo"],
+                "valor": float(cupom["valor"]),
+                "tipo": cupom.get("tipo", "fixed"),
+                "oculto": bool(cupom.get("oculto", False))
+            }
+            response = requests.post(insert_url, json=payload, headers=headers, timeout=10)
+            print(f"DEBUG: Response status: {response.status_code}")
+            if response.status_code not in [200, 201, 204]:
+                print(f"DEBUG: Response error: {response.text}")
+
+        return ok({"message": "Cupons salvos com sucesso"})
+
+    except Exception as e:
+        import traceback
+        print("Erro ao salvar cupons:", str(e))
+        print(traceback.format_exc())
+        return ok({"message": f"Erro ao salvar cupons: {str(e)}"})
 
 
 @app.route("/admin/api/pizzarias/<pizzaria_id>", methods=["GET", "PUT", "DELETE"])
@@ -391,20 +445,69 @@ def admin_pizzaria_by_id(pizzaria_id):
         item = get_pizzaria_or_404(pizzaria_id)
         if not item:
             return fail("Pizzaria não encontrada", 404)
+
+        # Buscar cupons da tabela separada
+        try:
+            cupons = supabase.table("cupons").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+            # Converter para formato esperado pelo frontend
+            item["cupons"] = [
+                {
+                    "codigo": c["codigo"],
+                    "valor": float(c["valor"]),
+                    "tipo": c.get("tipo", "fixed"),
+                    "oculto": bool(c.get("oculto", False))
+                }
+                for c in (cupons or [])
+            ]
+        except Exception as e:
+            print("Erro ao buscar cupons:", str(e))
+            item["cupons"] = []
+
         return jsonify(item)
 
     if request.method == "DELETE":
         supabase.table("pizzarias").delete().eq("id", pizzaria_id).execute()
         return ok()
 
-    data = parse_json()
-    payload = {k: v for k, v in data.items() if k != "id"}
-    if "slug" in payload:
-        payload["slug"] = str(payload["slug"]).strip().lower()
-    updated = supabase.table("pizzarias").update(payload).eq("id", pizzaria_id).execute().data
-    if not updated:
-        return fail("Pizzaria não encontrada", 404)
-    return ok({"item": updated[0]})
+    if request.method == "PUT":
+        data = parse_json()
+        payload = {k: v for k, v in data.items() if k != "id"}
+        if "slug" in payload:
+            payload["slug"] = str(payload["slug"]).strip().lower()
+
+        # Separar cupons do payload principal
+        cupons_data = payload.pop("cupons", None)
+
+        try:
+            # Atualizar dados principais da pizzaria
+            updated = supabase.table("pizzarias").update(payload).eq("id", pizzaria_id).execute().data
+            if not updated:
+                return fail("Pizzaria não encontrada", 404)
+
+            # Salvar cupons na tabela separada
+            if cupons_data is not None:
+                try:
+                    # Deletar cupons existentes
+                    supabase.table("cupons").delete().eq("pizzaria_id", pizzaria_id).execute()
+                    # Inserir novos cupons
+                    for cupom in cupons_data:
+                        cupom_payload = {
+                            "pizzaria_id": pizzaria_id,
+                            "codigo": cupom["codigo"],
+                            "valor": float(cupom["valor"]),
+                            "tipo": cupom.get("tipo", "fixed"),
+                            "oculto": bool(cupom.get("oculto", False))
+                        }
+                        supabase.table("cupons").insert(cupom_payload).execute()
+                except Exception as cupom_error:
+                    print("Aviso: Erro ao salvar cupons:", str(cupom_error))
+
+            return ok({"item": updated[0]})
+        except Exception as e:
+            import traceback
+            print("Erro ao atualizar pizzaria:", str(e))
+            print(traceback.format_exc())
+            return fail(f"Erro ao salvar: {str(e)}", 500)
 
 
 @app.route("/admin/api/categorias", methods=["GET", "POST"])
@@ -414,26 +517,55 @@ def admin_categorias():
         pizzaria_id = request.args.get("pizzaria_id", "")
         if not pizzaria_id:
             return fail("pizzaria_id é obrigatório")
+
+        # Buscar categorias principais (sem parent_id)
         rows = (
             supabase.table("categorias")
             .select("*")
             .eq("pizzaria_id", pizzaria_id)
+            .is_("parent_id", "null")
             .order("sort_order")
             .execute()
             .data
         )
+
+        # Buscar subcategorias para cada categoria principal
+        for categoria in rows:
+            subcats = (
+                supabase.table("categorias")
+                .select("*")
+                .eq("pizzaria_id", pizzaria_id)
+                .eq("parent_id", categoria["id"])
+                .order("sort_order")
+                .execute()
+                .data
+            )
+            categoria["subcategorias"] = subcats
+
         return jsonify(rows)
 
     data = parse_json()
     payload = {
         "pizzaria_id": data.get("pizzaria_id"),
+        "parent_id": data.get("parent_id"),  # null para categoria principal
         "nome": data.get("nome", "").strip(),
         "icone": data.get("icone", "").strip(),
-        "button_variant": data.get("button_variant", "primario"),
+        "button_variant": data.get("button_variant", "primary"),  # Corrigido para "primary"
         "sort_order": int(data.get("sort_order", 0)),
+        "tipo": data.get("tipo", "principal"),  # 'principal' ou 'subcategoria'
     }
     if not payload["pizzaria_id"] or not payload["nome"]:
         return fail("pizzaria_id e nome são obrigatórios")
+
+    # Se tiver parent_id, garantir que tipo seja 'subcategoria'
+    if payload["parent_id"] and payload["tipo"] != "subcategoria":
+        payload["tipo"] = "subcategoria"
+    # Se não tiver parent_id, garantir que tipo seja 'principal'
+    elif not payload["parent_id"] and payload["tipo"] != "principal":
+        payload["tipo"] = "principal"
+
+    print("Payload para inserir categoria:", payload)  # Debug
+
     row = supabase.table("categorias").insert(payload).execute().data[0]
     return ok({"item": row}, 201)
 
@@ -454,29 +586,33 @@ def admin_categoria_by_id(categoria_id):
 def admin_produtos():
     if request.method == "GET":
         pizzaria_id = request.args.get("pizzaria_id", "")
-        rows = (
-            supabase.table("produtos")
-            .select("*")
-            .eq("pizzaria_id", pizzaria_id)
-            .order("sort_order")
-            .execute()
-            .data
-        )
+        categoria_id = request.args.get("categoria_id", "")
+        subcategoria_id = request.args.get("subcategoria_id", "")
+
+        query = supabase.table("produtos").select("*").eq("pizzaria_id", pizzaria_id)
+
+        if categoria_id:
+            query = query.eq("categoria_id", categoria_id)
+        if subcategoria_id:
+            query = query.eq("subcategoria_id", subcategoria_id)
+
+        rows = query.order("sort_order").execute().data
         return jsonify(rows)
 
     data = parse_json()
     payload = {
         "pizzaria_id": data.get("pizzaria_id"),
         "categoria_id": data.get("categoria_id"),
+        "subcategoria_id": data.get("subcategoria_id"),  # Nova coluna
         "nome": data.get("nome", "").strip(),
         "descricao": data.get("descricao", "").strip(),
-        "imagem_url": data.get("imagem_url", "").strip(),
         "preco_base": float(data.get("preco_base", 0)),
-        "sort_order": int(data.get("sort_order", 0)),
+        "imagem_url": data.get("imagem_url", "").strip(),
         "ativo": bool(data.get("ativo", True)),
+        "sort_order": int(data.get("sort_order", 0)),
     }
-    if not payload["pizzaria_id"] or not payload["categoria_id"] or not payload["nome"]:
-        return fail("pizzaria_id, categoria_id e nome são obrigatórios")
+    if not payload["pizzaria_id"] or not payload["nome"]:
+        return fail("pizzaria_id e nome são obrigatórios")
     row = supabase.table("produtos").insert(payload).execute().data[0]
     return ok({"item": row}, 201)
 
@@ -525,6 +661,277 @@ def admin_secao_by_id(secao_id):
     data = parse_json()
     row = supabase.table("produto_secoes").update(data).eq("id", secao_id).execute().data[0]
     return ok({"item": row})
+
+
+@app.route("/admin/api/categoria-combos", methods=["GET", "POST"])
+@login_required
+def admin_categoria_combos():
+    if request.method == "GET":
+        pizzaria_id = request.args.get("pizzaria_id", "")
+        rows = (
+            supabase.table("categoria_combos")
+            .select("*")
+            .eq("pizzaria_id", pizzaria_id)
+            .order("sort_order")
+            .execute()
+            .data
+        )
+        return jsonify(rows)
+
+    data = parse_json()
+    payload = {
+        "pizzaria_id": data.get("pizzaria_id"),
+        "categoria_origem_id": data.get("categoria_origem_id"),
+        "categoria_destino_id": data.get("categoria_destino_id"),
+        "ativo": bool(data.get("ativo", True)),
+        "sort_order": int(data.get("sort_order", 0)),
+    }
+    if not payload["pizzaria_id"] or not payload["categoria_origem_id"] or not payload["categoria_destino_id"]:
+        return fail("pizzaria_id, categoria_origem_id e categoria_destino_id são obrigatórios")
+    row = supabase.table("categoria_combos").insert(payload).execute().data[0]
+    return ok({"item": row}, 201)
+
+
+@app.route("/admin/api/categoria-combos/<combo_id>", methods=["PUT", "DELETE"])
+@login_required
+def admin_categoria_combo_by_id(combo_id):
+    if request.method == "DELETE":
+        supabase.table("categoria_combos").delete().eq("id", combo_id).execute()
+        return ok()
+    data = parse_json()
+    row = supabase.table("categoria_combos").update(data).eq("id", combo_id).execute().data[0]
+    return ok({"item": row})
+
+
+@app.route("/admin/api/subcategoria-combos", methods=["GET", "POST"])
+@login_required
+def admin_subcategoria_combos():
+    if request.method == "GET":
+        pizzaria_id = request.args.get("pizzaria_id", "")
+        rows = (
+            supabase.table("subcategoria_combos")
+            .select("*")
+            .eq("pizzaria_id", pizzaria_id)
+            .order("sort_order")
+            .execute()
+            .data
+        )
+        return jsonify(rows)
+
+    data = parse_json()
+    payload = {
+        "pizzaria_id": data.get("pizzaria_id"),
+        "subcategoria_origem_id": data.get("subcategoria_origem_id"),
+        "subcategoria_destino_id": data.get("subcategoria_destino_id"),
+        "ativo": bool(data.get("ativo", True)),
+        "sort_order": int(data.get("sort_order", 0)),
+    }
+    if not payload["pizzaria_id"] or not payload["subcategoria_origem_id"] or not payload["subcategoria_destino_id"]:
+        return fail("pizzaria_id, subcategoria_origem_id e subcategoria_destino_id são obrigatórios")
+    row = supabase.table("subcategoria_combos").insert(payload).execute().data[0]
+    return ok({"item": row}, 201)
+
+
+@app.route("/admin/api/subcategoria-combos/<combo_id>", methods=["PUT", "DELETE"])
+@login_required
+def admin_subcategoria_combo_by_id(combo_id):
+    if request.method == "DELETE":
+        supabase.table("subcategoria_combos").delete().eq("id", combo_id).execute()
+        return ok()
+    data = parse_json()
+    row = supabase.table("subcategoria_combos").update(data).eq("id", combo_id).execute().data[0]
+    return ok({"item": row})
+
+
+@app.route("/admin/api/sugestao-config", methods=["GET", "POST"])
+@login_required
+def admin_sugestao_config():
+    if request.method == "GET":
+        pizzaria_id = request.args.get("pizzaria_id", "")
+        rows = (
+            supabase.table("sugestao_config")
+            .select("*")
+            .eq("pizzaria_id", pizzaria_id)
+            .order("sort_order")
+            .execute()
+            .data
+        )
+        return jsonify(rows)
+
+    data = parse_json()
+    payload = {
+        "pizzaria_id": data.get("pizzaria_id"),
+        "categoria_id": data.get("categoria_id"),
+        "ativo": bool(data.get("ativo", True)),
+        "sort_order": int(data.get("sort_order", 0)),
+    }
+    if not payload["pizzaria_id"] or not payload["categoria_id"]:
+        return fail("pizzaria_id e categoria_id são obrigatórios")
+    row = supabase.table("sugestao_config").insert(payload).execute().data[0]
+    return ok({"item": row}, 201)
+
+
+@app.route("/admin/api/sugestao-config/<config_id>", methods=["PUT", "DELETE"])
+@login_required
+def admin_sugestao_config_by_id(config_id):
+    if request.method == "DELETE":
+        supabase.table("sugestao_config").delete().eq("id", config_id).execute()
+        return ok()
+    data = parse_json()
+    row = supabase.table("sugestao_config").update(data).eq("id", config_id).execute().data[0]
+    return ok({"item": row})
+
+
+@app.route("/api/sugestao-combo/<slug>", methods=["POST"])
+def api_sugestao_combo(slug):
+    """API para gerar sugestão de pedido baseada em combos"""
+    print(f"=== DEBUG: Recebida requisição de sugestão para slug: {slug}")  # Debug
+
+    rows = supabase.table("pizzarias").select("*").eq("slug", slug).limit(1).execute().data
+    if not rows:
+        return fail("Pizzaria não encontrada", 404)
+    pizzaria = rows[0]
+
+    payload = parse_json()
+    categoria_escolhida_id = payload.get("categoria_id")
+    print(f"=== DEBUG: Categoria escolhida: {categoria_escolhida_id}")  # Debug
+
+    if not categoria_escolhida_id:
+        return fail("categoria_id é obrigatório")
+
+    # Buscar configurações de sugestão ativas
+    config_sugestao = (
+        supabase.table("sugestao_config")
+        .select("*, categorias(*)")
+        .eq("pizzaria_id", pizzaria["id"])
+        .eq("ativo", True)
+        .execute()
+        .data
+    )
+    print(f"=== DEBUG: Config sugestão encontrada: {len(config_sugestao)} configurações")  # Debug
+
+    # Buscar combos de categorias
+    categoria_combos = (
+        supabase.table("categoria_combos")
+        .select("*, categoria_origem:categoria_origem_id(*), categoria_destino:categoria_destino_id(*)")
+        .eq("pizzaria_id", pizzaria["id"])
+        .eq("ativo", True)
+        .execute()
+        .data
+    )
+    print(f"=== DEBUG: Categoria combos encontrados: {len(categoria_combos)}")  # Debug
+
+    # Buscar combos de subcategorias (se existirem)
+    subcategoria_combos = (
+        supabase.table("subcategoria_combos")
+        .select("*, subcategoria_origem:subcategoria_origem_id(*), subcategoria_destino:subcategoria_destino_id(*)")
+        .eq("pizzaria_id", pizzaria["id"])
+        .eq("ativo", True)
+        .execute()
+        .data
+    )
+
+    # Encontrar categorias que combinam com a escolhida
+    categorias_combinam = []
+    print(f"=== DEBUG: Procurando combos para categoria {categoria_escolhida_id}")  # Debug
+
+    for combo in categoria_combos:
+        origem_id = combo["categoria_origem"]["id"]
+        destino_id = combo["categoria_destino"]["id"]
+        print(f"=== DEBUG: Verificando combo: {origem_id} -> {destino_id}")  # Debug
+
+        if origem_id == categoria_escolhida_id:
+            categorias_combinam.append(combo["categoria_destino"])
+            print(f"=== DEBUG: Encontrada combinação: {combo['categoria_destino']['nome']}")  # Debug
+        elif destino_id == categoria_escolhida_id:
+            categorias_combinam.append(combo["categoria_origem"])
+            print(f"=== DEBUG: Encontrada combinação: {combo['categoria_origem']['nome']}")  # Debug
+
+    print(f"=== DEBUG: Total de categorias que combinam: {len(categorias_combinam)}")  # Debug
+
+    # Buscar produtos das categorias que combinam
+    if not categorias_combinam:
+        return fail("Nenhuma combinação encontrada para esta categoria")
+
+    categoria_ids = [cat["id"] for cat in categorias_combinam]
+    produtos = (
+        supabase.table("produtos")
+        .select("*")
+        .eq("pizzaria_id", pizzaria["id"])
+        .eq("ativo", True)
+        .in_("categoria_id", categoria_ids)
+        .execute()
+        .data
+    )
+
+    # Sortear produtos aleatórios (máximo 3 por categoria)
+    import random
+    produtos_sugeridos = []
+    produtos_por_categoria = {}
+
+    # Agrupar produtos por categoria
+    for produto in produtos:
+        cat_id = produto["categoria_id"]
+        if cat_id not in produtos_por_categoria:
+            produtos_por_categoria[cat_id] = []
+        produtos_por_categoria[cat_id].append(produto)
+
+    # Sortear até 3 produtos por categoria
+    for cat_id, produtos_cat in produtos_por_categoria.items():
+        if len(produtos_cat) > 3:
+            produtos_sorteados = random.sample(produtos_cat, 3)
+        else:
+            produtos_sorteados = produtos_cat
+        produtos_sugeridos.extend(produtos_sorteados)
+
+    # Buscar seções e opções dos produtos sugeridos
+    if produtos_sugeridos:
+        produto_ids = [p["id"] for p in produtos_sugeridos]
+        secoes = (
+            supabase.table("produto_secoes")
+            .select("*")
+            .in_("produto_id", produto_ids)
+            .order("sort_order")
+            .execute()
+            .data
+        )
+        secao_ids = [s["id"] for s in secoes]
+        opcoes = []
+        if secao_ids:
+            opcoes = (
+                supabase.table("produto_opcoes")
+                .select("*")
+                .in_("secao_id", secao_ids)
+                .eq("ativo", True)
+                .order("sort_order")
+                .execute()
+                .data
+            )
+
+        # Organizar seções e opções
+        opcoes_por_secao = {}
+        for opcao in opcoes:
+            secao_id = opcao["secao_id"]
+            if secao_id not in opcoes_por_secao:
+                opcoes_por_secao[secao_id] = []
+            opcoes_por_secao[secao_id].append(opcao)
+
+        secoes_por_produto = {}
+        for secao in secoes:
+            produto_id = secao["produto_id"]
+            if produto_id not in secoes_por_produto:
+                secoes_por_produto[produto_id] = []
+            secao["opcoes"] = opcoes_por_secao.get(secao["id"], [])
+            secoes_por_produto[produto_id].append(secao)
+
+        for produto in produtos_sugeridos:
+            produto["secoes"] = secoes_por_produto.get(produto["id"], [])
+
+    return ok({
+        "produtos": produtos_sugeridos,
+        "categorias_origem": [cat for cat in categorias_combinam],
+        "mensagem": f"Combinações com {next((cat['nome'] for cat in config_sugestao if cat['categoria_id'] == categoria_escolhida_id), 'categoria escolhida')}"
+    })
 
 
 @app.route("/admin/api/opcoes", methods=["GET", "POST"])
@@ -736,14 +1143,39 @@ def pizzaria_public(slug):
         return "Pizzaria não encontrada", 404
     pizzaria = rows[0]
 
-    categorias = (
+    # Buscar categorias principais com subcategorias
+    categorias_principais = (
         supabase.table("categorias")
         .select("*")
         .eq("pizzaria_id", pizzaria["id"])
+        .is_("parent_id", "null")
         .order("sort_order")
         .execute()
         .data
     )
+
+    # Buscar subcategorias e organizar estrutura hierárquica
+    categorias = []
+    for categoria in categorias_principais:
+        subcats = (
+            supabase.table("categorias")
+            .select("*")
+            .eq("pizzaria_id", pizzaria["id"])
+            .eq("parent_id", categoria["id"])
+            .order("sort_order")
+            .execute()
+            .data
+        )
+
+        # Adiciona categoria principal com suas subcategorias
+        categoria_completa = dict(categoria)
+        categoria_completa["subcategorias"] = subcats
+        categorias.append(categoria_completa)
+
+        # Adiciona subcategorias como itens separados na lista para renderização
+        for subcat in subcats:
+            categorias.append(dict(subcat))
+
     produtos = (
         supabase.table("produtos")
         .select("*")
@@ -759,6 +1191,14 @@ def pizzaria_public(slug):
         .eq("pizzaria_id", pizzaria["id"])
         .eq("ativo", True)
         .order("sort_order")
+        .execute()
+        .data
+    )
+    cupons = (
+        supabase.table("cupons")
+        .select("*")
+        .eq("pizzaria_id", pizzaria["id"])
+        .eq("oculto", False)
         .execute()
         .data
     )
@@ -789,15 +1229,24 @@ def pizzaria_public(slug):
 
     opcoes_por_secao = {}
     for opcao in opcoes:
-        opcoes_por_secao.setdefault(opcao["secao_id"], []).append(opcao)
+        secao_id = opcao["secao_id"]
+        if secao_id not in opcoes_por_secao:
+            opcoes_por_secao[secao_id] = []
+        opcoes_por_secao[secao_id].append(opcao)
 
     secoes_por_produto = {}
     for secao in secoes:
+        produto_id = secao["produto_id"]
+        if produto_id not in secoes_por_produto:
+            secoes_por_produto[produto_id] = []
         secao["opcoes"] = opcoes_por_secao.get(secao["id"], [])
-        secoes_por_produto.setdefault(secao["produto_id"], []).append(secao)
+        secoes_por_produto[produto_id].append(secao)
 
     for produto in produtos:
         produto["secoes"] = secoes_por_produto.get(produto["id"], [])
+
+    # Add cupons to pizzaria object
+    pizzaria["cupons"] = cupons
 
     return render_template(
         "index.html",
@@ -810,5 +1259,270 @@ def pizzaria_public(slug):
     )
 
 
+# ============================================
+# ENDPOINTS PAINEL ADMIN MASTER - NOVAS FUNCIONALIDADES
+# ============================================
+
+@app.route("/admin/api/pizzarias/<pizzaria_id>/duplicar", methods=["POST"])
+@login_required
+def duplicar_pizzaria(pizzaria_id):
+    """Duplicar uma pizzaria existente"""
+    try:
+        # Buscar pizzaria original
+        original = get_pizzaria_or_404(pizzaria_id)
+        if not original:
+            return fail("Pizzaria não encontrada", 404)
+
+        data = parse_json()
+        novo_nome = data.get("nome", f"{original['nome']} - Cópia")
+        novo_slug = data.get("slug", f"{original['slug']}-copia")
+
+        # Verificar se slug já existe
+        slug_exists = supabase.table("pizzarias").select("id").eq("slug", novo_slug).execute().data
+        if slug_exists:
+            return fail("Slug já existe, escolha outro")
+
+        print(f"=== DUPLICANDO PIZZARIA: {original['nome']} -> {novo_nome}")
+
+        # 1. Criar nova pizzaria
+        nova_pizzaria = {
+            "nome": novo_nome,
+            "slug": novo_slug,
+            "whatsapp": original["whatsapp"],
+            "cep": original.get("cep", ""),
+            "latitude": original.get("latitude"),
+            "longitude": original.get("longitude"),
+            "endereco": original.get("endereco", ""),
+            "banner_url": original.get("banner_url", ""),
+            "logo_url": original.get("logo_url", ""),
+            "tempo_entrega_min": original.get("tempo_entrega_min", 30),
+            "tempo_entrega_max": original.get("tempo_entrega_max", 50),
+            "horario_abertura": original.get("horario_abertura", "18:00"),
+            "horario_fechamento": original.get("horario_fechamento", "23:00"),
+            "status_override": original.get("status_override", "auto"),
+            "cor_fundo_principal": original.get("cor_fundo_principal", "#0b0f1a"),
+            "cor_fundo_secundario": original.get("cor_fundo_secundario", "#111827"),
+            "cor_titulos": original.get("cor_titulos", "#f9fafb"),
+            "cor_texto": original.get("cor_texto", "#e5e7eb"),
+            "cor_texto_secundario": original.get("cor_texto_secundario", "#94a3b8"),
+            "cor_surface": original.get("cor_surface", "#ffffff"),
+            "botao_primario_bg": original.get("botao_primario_bg", "#ef4444"),
+            "botao_primario_texto": original.get("botao_primario_texto", "#ffffff"),
+            "botao_primario_hover": original.get("botao_primario_hover", "#dc2626"),
+            "botao_secundario_bg": original.get("botao_secundario_bg", "#1f2937"),
+            "botao_secundario_texto": original.get("botao_secundario_texto", "#ffffff"),
+            "botao_secundario_hover": original.get("botao_secundario_hover", "#111827"),
+            "botao_destaque_bg": original.get("botao_destaque_bg", "#f59e0b"),
+            "botao_destaque_texto": original.get("botao_destaque_texto", "#111827"),
+            "botao_destaque_hover": original.get("botao_destaque_hover", "#d97706"),
+            "botao_neutro_bg": original.get("botao_neutro_bg", "#e5e7eb"),
+            "botao_neutro_texto": original.get("botao_neutro_texto", "#111827"),
+            "botao_neutro_hover": original.get("botao_neutro_hover", "#cbd5e1"),
+            "texto_botao_mais": original.get("texto_botao_mais", "Mais"),
+            "texto_botao_finalizar": original.get("texto_botao_finalizar", "Finalizar pedido"),
+            "texto_botao_cancelar": original.get("texto_botao_cancelar", "Cancelar"),
+            "texto_botao_ver_mais": original.get("texto_botao_ver_mais", "Ver mais"),
+            "status": "ativo"
+        }
+
+        nova_pizzaria_criada = supabase.table("pizzarias").insert(nova_pizzaria).execute().data[0]
+        nova_pizzaria_id = nova_pizzaria_criada["id"]
+
+        print(f"Nova pizzaria criada: {nova_pizzaria_id}")
+
+        # 2. Copiar categorias e subcategorias
+        categorias_originais = supabase.table("categorias").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+        categorias_mapeamento = {}  # antigo_id -> novo_id
+
+        for categoria in categorias_originais:
+            nova_categoria = {
+                "pizzaria_id": nova_pizzaria_id,
+                "parent_id": None,  # Será ajustado depois
+                "nome": categoria["nome"],
+                "icone": categoria.get("icone", ""),
+                "button_variant": categoria.get("button_variant", "primary"),
+                "tipo": categoria.get("tipo", "principal"),
+                "sort_order": categoria.get("sort_order", 0)
+            }
+            nova_categoria_criada = supabase.table("categorias").insert(nova_categoria).execute().data[0]
+            categorias_mapeamento[categoria["id"]] = nova_categoria_criada["id"]
+
+        # Ajustar parent_id das subcategorias
+        for categoria in categorias_originais:
+            if categoria.get("parent_id"):
+                novo_parent_id = categorias_mapeamento.get(categoria["parent_id"])
+                if novo_parent_id:
+                    supabase.table("categorias").update({"parent_id": novo_parent_id}).eq("id", categorias_mapeamento[categoria["id"]]).execute()
+
+        print(f"Categorias copiadas: {len(categorias_originais)}")
+
+        # 3. Copiar produtos
+        produtos_originais = supabase.table("produtos").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+        produtos_mapeamento = {}  # antigo_id -> novo_id
+
+        for produto in produtos_originais:
+            # Mapear categoria_id para o novo ID
+            nova_categoria_id = categorias_mapeamento.get(produto["categoria_id"])
+            if not nova_categoria_id:
+                continue  # Pular se não encontrar a categoria
+
+            novo_produto = {
+                "pizzaria_id": nova_pizzaria_id,
+                "categoria_id": nova_categoria_id,
+                "subcategoria_id": categorias_mapeamento.get(produto["subcategoria_id"]) if produto.get("subcategoria_id") else None,
+                "nome": produto["nome"],
+                "descricao": produto.get("descricao", ""),
+                "preco_base": produto["preco_base"],
+                "imagem_url": produto.get("imagem_url", ""),
+                "ativo": produto.get("ativo", True),
+                "sort_order": produto.get("sort_order", 0)
+            }
+            novo_produto_criado = supabase.table("produtos").insert(novo_produto).execute().data[0]
+            produtos_mapeamento[produto["id"]] = novo_produto_criado["id"]
+
+        print(f"Produtos copiados: {len(produtos_originais)}")
+
+        # 4. Copiar seções e opções dos produtos
+        secoes_originais = supabase.table("produto_secoes").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+        secoes_mapeamento = {}  # antigo_id -> novo_id
+
+        for secao in secoes_originais:
+            novo_produto_id = produtos_mapeamento.get(secao["produto_id"])
+            if not novo_produto_id:
+                continue
+
+            nova_secao = {
+                "pizzaria_id": nova_pizzaria_id,
+                "produto_id": novo_produto_id,
+                "nome": secao["nome"],
+                "tipo": secao.get("tipo", "radio"),
+                "obrigatoria": secao.get("obrigatoria", False),
+                "minimo": secao.get("minimo", 0),
+                "maximo": secao.get("maximo", 1),
+                "sort_order": secao.get("sort_order", 0)
+            }
+            nova_secao_criada = supabase.table("produto_secoes").insert(nova_secao).execute().data[0]
+            secoes_mapeamento[secao["id"]] = nova_secao_criada["id"]
+
+        # Copiar opções das seções
+        opcoes_originais = supabase.table("opcoes").select("*").in_("secao_id", [s["id"] for s in secoes_originais]).execute().data
+
+        for opcao in opcoes_originais:
+            nova_secao_id = secoes_mapeamento.get(opcao["secao_id"])
+            if not nova_secao_id:
+                continue
+
+            nova_opcao = {
+                "secao_id": nova_secao_id,
+                "nome": opcao["nome"],
+                "preco_adicional": opcao.get("preco_adicional", 0),
+                "sort_order": opcao.get("sort_order", 0)
+            }
+            supabase.table("opcoes").insert(nova_opcao).execute()
+
+        print(f"Seções e opções copiadas: {len(secoes_originais)} seções, {len(opcoes_originais)} opções")
+
+        # 5. Copiar regras de combo
+        categoria_combos = supabase.table("categoria_combos").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+
+        for combo in categoria_combos:
+            nova_origem_id = categorias_mapeamento.get(combo["categoria_origem_id"])
+            novo_destino_id = categorias_mapeamento.get(combo["categoria_destino_id"])
+            if nova_origem_id and novo_destino_id:
+                novo_combo = {
+                    "pizzaria_id": nova_pizzaria_id,
+                    "categoria_origem_id": nova_origem_id,
+                    "categoria_destino_id": novo_destino_id,
+                    "ativo": combo.get("ativo", True)
+                }
+                supabase.table("categoria_combos").insert(novo_combo).execute()
+
+        subcategoria_combos = supabase.table("subcategoria_combos").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+
+        for combo in subcategoria_combos:
+            nova_origem_id = categorias_mapeamento.get(combo["subcategoria_origem_id"])
+            novo_destino_id = categorias_mapeamento.get(combo["subcategoria_destino_id"])
+            if nova_origem_id and novo_destino_id:
+                novo_combo = {
+                    "pizzaria_id": nova_pizzaria_id,
+                    "subcategoria_origem_id": nova_origem_id,
+                    "subcategoria_destino_id": novo_destino_id,
+                    "ativo": combo.get("ativo", True)
+                }
+                supabase.table("subcategoria_combos").insert(novo_combo).execute()
+
+        print(f"Combos copiados: {len(categoria_combos)} categorias, {len(subcategoria_combos)} subcategorias")
+
+        # 6. Copiar configurações de sugestão
+        sugestao_config = supabase.table("sugestao_config").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+
+        for config in sugestao_config:
+            nova_categoria_id = categorias_mapeamento.get(config["categoria_id"])
+            if nova_categoria_id:
+                nova_config = {
+                    "pizzaria_id": nova_pizzaria_id,
+                    "categoria_id": nova_categoria_id,
+                    "ativo": config.get("ativo", True)
+                }
+                supabase.table("sugestao_config").insert(nova_config).execute()
+
+        print(f"Configurações de sugestão copiadas: {len(sugestao_config)}")
+
+        # 7. Copiar regras de frete
+        frete_regras = supabase.table("frete_regras").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+
+        for regra in frete_regras:
+            nova_regra = {
+                "pizzaria_id": nova_pizzaria_id,
+                "distancia_km_min": regra["distancia_km_min"],
+                "distancia_km_max": regra["distancia_km_max"],
+                "valor": regra["valor"]
+            }
+            supabase.table("frete_regras").insert(nova_regra).execute()
+
+        print(f"Regras de frete copiadas: {len(frete_regras)}")
+
+        print(f"=== DUPLICAÇÃO CONCLUÍDA: {nova_pizzaria_id}")
+
+        return ok({
+            "message": "Pizzaria duplicada com sucesso",
+            "nova_pizzaria": nova_pizzaria_criada
+        }, 201)
+
+    except Exception as e:
+        print(f"ERRO AO DUPLICAR PIZZARIA: {e}")
+        return fail(f"Erro ao duplicar pizzaria: {str(e)}")
+
+
+@app.route("/admin/api/pizzarias/<pizzaria_id>/status", methods=["PUT"])
+@login_required
+def toggle_pizzaria_status(pizzaria_id):
+    """Ativar ou desativar uma pizzaria"""
+    try:
+        pizzaria = get_pizzaria_or_404(pizzaria_id)
+        if not pizzaria:
+            return fail("Pizzaria não encontrada", 404)
+
+        data = parse_json()
+        novo_status = data.get("status")
+
+        if novo_status not in ["ativo", "desativado"]:
+            return fail("Status inválido. Use 'ativo' ou 'desativado'")
+
+        # Atualizar status
+        supabase.table("pizzarias").update({"status": novo_status}).eq("id", pizzaria_id).execute()
+
+        print(f"Status da pizzaria {pizzaria_id} atualizado para: {novo_status}")
+
+        return ok({
+            "message": f"Pizzaria {novo_status} com sucesso",
+            "status": novo_status
+        })
+
+    except Exception as e:
+        print(f"ERRO AO ATUALIZAR STATUS: {e}")
+        return fail(f"Erro ao atualizar status: {str(e)}")
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

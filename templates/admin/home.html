@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>Admin | Dashboard</title>
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/home.css') }}">
 </head>
+
 <body>
     <div class="layout">
         <aside class="sidebar">
@@ -33,6 +35,9 @@
                     <div class="card-header">
                         <h3>{{ pizzaria.nome }}</h3>
                         <span class="slug">{{ pizzaria.slug }}</span>
+                        <div class="status-badge {{ pizzaria.status or 'ativo' }}">
+                            {{ "Ativo" if (pizzaria.status or 'ativo') == 'ativo' else "Desativado" }}
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="info">
@@ -48,6 +53,15 @@
                         <a href="/admin/pizzaria/{{ pizzaria.id }}/editar" class="btn-edit">
                             Editar
                         </a>
+                        <button class="btn-duplicate"
+                            onclick="duplicarPizzaria('{{ pizzaria.id }}', '{{ pizzaria.nome }}', '{{ pizzaria.slug }}')">
+                            Duplicar
+                        </button>
+                        <button
+                            class="btn-toggle {{ 'btn-desativar' if (pizzaria.status or 'ativo') == 'ativo' else 'btn-ativar' }}"
+                            onclick="toggleStatus('{{ pizzaria.id }}', '{{ pizzaria.status or 'ativo' }}')">
+                            {{ "Desativar" if (pizzaria.status or 'ativo') == 'ativo' else "Ativar" }}
+                        </button>
                         <button class="btn-delete" onclick="removePizzaria('{{ pizzaria.id }}')">
                             Excluir
                         </button>
@@ -64,6 +78,80 @@
             if (!res.ok) return alert("Erro ao excluir");
             window.location.reload();
         }
+
+        async function duplicarPizzaria(id, nome, slug) {
+            // Pedir novo nome e slug
+            const novoNome = prompt("Nome da nova pizzaria:", `${nome} - Cópia`);
+            if (!novoNome) return;
+
+            const novoSlug = prompt("Slug da nova pizzaria (sem espaços, minúsculas):", `${slug}-copia`);
+            if (!novoSlug) return;
+
+            // Validar slug
+            if (!/^[a-z0-9-]+$/.test(novoSlug)) {
+                alert("Slug inválido! Use apenas letras minúsculas, números e traços.");
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/api/pizzarias/${id}/duplicar`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        nome: novoNome,
+                        slug: novoSlug
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("Pizzaria duplicada com sucesso!");
+                    window.location.reload();
+                } else {
+                    alert("Erro ao duplicar: " + (result.message || "Erro desconhecido"));
+                }
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Erro ao duplicar pizzaria");
+            }
+        }
+
+        async function toggleStatus(id, statusAtual) {
+            const novoStatus = statusAtual === 'ativo' ? 'desativado' : 'ativo';
+            const confirmMessage = statusAtual === 'ativo'
+                ? "Tem certeza que deseja desativar esta pizzaria? O site ficará inacessível para clientes."
+                : "Tem certeza que deseja ativar esta pizzaria? O site ficará acessível para clientes.";
+
+            if (!confirm(confirmMessage)) return;
+
+            try {
+                const response = await fetch(`/admin/api/pizzarias/${id}/status`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        status: novoStatus
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(`Pizzaria ${novoStatus} com sucesso!`);
+                    window.location.reload();
+                } else {
+                    alert("Erro ao alterar status: " + (result.message || "Erro desconhecido"));
+                }
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Erro ao alterar status da pizzaria");
+            }
+        }
     </script>
 </body>
+
 </html>
