@@ -1268,18 +1268,34 @@ def pizzaria_public(slug):
 def duplicar_pizzaria(pizzaria_id):
     """Duplicar uma pizzaria existente"""
     try:
+        print(f"=== DEBUG DUPLICAR: Recebida requisição para pizzaria_id: {pizzaria_id}")
+
+        # TESTE: Verificar conexão com Supabase
+        print("=== TESTE: Verificando conexão com Supabase...")
+        test_connection = supabase.table("pizzarias").select("id").limit(1).execute()
+        print(f"=== TESTE: Resultado conexão: {test_connection}")
+
         # Buscar pizzaria original
         original = get_pizzaria_or_404(pizzaria_id)
         if not original:
+            print(f"=== ERRO: Pizzaria não encontrada: {pizzaria_id}")
             return fail("Pizzaria não encontrada", 404)
 
+        print(f"=== DEBUG: Pizzaria original encontrada: {original['nome']}")
+
         data = parse_json()
+        print(f"=== DEBUG: Payload recebido: {data}")
+
         novo_nome = data.get("nome", f"{original['nome']} - Cópia")
         novo_slug = data.get("slug", f"{original['slug']}-copia")
+
+        print(f"=== DEBUG: Novo nome: {novo_nome}")
+        print(f"=== DEBUG: Novo slug: {novo_slug}")
 
         # Verificar se slug já existe
         slug_exists = supabase.table("pizzarias").select("id").eq("slug", novo_slug).execute().data
         if slug_exists:
+            print(f"=== ERRO: Slug já existe: {novo_slug}")
             return fail("Slug já existe, escolha outro")
 
         print(f"=== DUPLICANDO PIZZARIA: {original['nome']} -> {novo_nome}")
@@ -1383,7 +1399,7 @@ def duplicar_pizzaria(pizzaria_id):
         print(f"Produtos copiados: {len(produtos_originais)}")
 
         # 4. Copiar seções e opções dos produtos
-        secoes_originais = supabase.table("produto_secoes").select("*").eq("pizzaria_id", pizzaria_id).execute().data
+        secoes_originais = supabase.table("produto_secoes").select("*").in_("produto_id", [p["id"] for p in produtos_originais]).execute().data
         secoes_mapeamento = {}  # antigo_id -> novo_id
 
         for secao in secoes_originais:
@@ -1392,20 +1408,19 @@ def duplicar_pizzaria(pizzaria_id):
                 continue
 
             nova_secao = {
-                "pizzaria_id": nova_pizzaria_id,
                 "produto_id": novo_produto_id,
                 "nome": secao["nome"],
                 "tipo": secao.get("tipo", "radio"),
-                "obrigatoria": secao.get("obrigatoria", False),
-                "minimo": secao.get("minimo", 0),
-                "maximo": secao.get("maximo", 1),
+                "obrigatorio": secao.get("obrigatorio", False),
+                "min_selecao": secao.get("min_selecao", 0),
+                "max_selecao": secao.get("max_selecao", 1),
                 "sort_order": secao.get("sort_order", 0)
             }
             nova_secao_criada = supabase.table("produto_secoes").insert(nova_secao).execute().data[0]
             secoes_mapeamento[secao["id"]] = nova_secao_criada["id"]
 
         # Copiar opções das seções
-        opcoes_originais = supabase.table("opcoes").select("*").in_("secao_id", [s["id"] for s in secoes_originais]).execute().data
+        opcoes_originais = supabase.table("produto_opcoes").select("*").in_("secao_id", [s["id"] for s in secoes_originais]).execute().data
 
         for opcao in opcoes_originais:
             nova_secao_id = secoes_mapeamento.get(opcao["secao_id"])
@@ -1416,9 +1431,10 @@ def duplicar_pizzaria(pizzaria_id):
                 "secao_id": nova_secao_id,
                 "nome": opcao["nome"],
                 "preco_adicional": opcao.get("preco_adicional", 0),
-                "sort_order": opcao.get("sort_order", 0)
+                "sort_order": opcao.get("sort_order", 0),
+                "ativo": opcao.get("ativo", True)
             }
-            supabase.table("opcoes").insert(nova_opcao).execute()
+            supabase.table("produto_opcoes").insert(nova_opcao).execute()
 
         print(f"Seções e opções copiadas: {len(secoes_originais)} seções, {len(opcoes_originais)} opções")
 
@@ -1499,18 +1515,32 @@ def duplicar_pizzaria(pizzaria_id):
 def toggle_pizzaria_status(pizzaria_id):
     """Ativar ou desativar uma pizzaria"""
     try:
+        print(f"=== DEBUG TOGGLE STATUS: Recebida requisição para pizzaria_id: {pizzaria_id}")
+
         pizzaria = get_pizzaria_or_404(pizzaria_id)
         if not pizzaria:
+            print(f"=== ERRO: Pizzaria não encontrada: {pizzaria_id}")
             return fail("Pizzaria não encontrada", 404)
 
+        print(f"=== DEBUG: Pizzaria encontrada: {pizzaria['nome']}")
+
         data = parse_json()
+        print(f"=== DEBUG: Payload recebido: {data}")
+
         novo_status = data.get("status")
+        print(f"=== DEBUG: Status extraído: {novo_status}")
+
+        if not novo_status:
+            print(f"=== ERRO: Status não fornecido no payload")
+            return fail("Status é obrigatório")
 
         if novo_status not in ["ativo", "desativado"]:
+            print(f"=== ERRO: Status inválido: {novo_status}")
             return fail("Status inválido. Use 'ativo' ou 'desativado'")
 
         # Atualizar status
-        supabase.table("pizzarias").update({"status": novo_status}).eq("id", pizzaria_id).execute()
+        result = supabase.table("pizzarias").update({"status": novo_status}).eq("id", pizzaria_id).execute()
+        print(f"=== DEBUG: Resultado update: {result}")
 
         print(f"Status da pizzaria {pizzaria_id} atualizado para: {novo_status}")
 
@@ -1521,6 +1551,8 @@ def toggle_pizzaria_status(pizzaria_id):
 
     except Exception as e:
         print(f"ERRO AO ATUALIZAR STATUS: {e}")
+        import traceback
+        traceback.print_exc()
         return fail(f"Erro ao atualizar status: {str(e)}")
 
 

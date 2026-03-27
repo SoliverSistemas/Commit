@@ -53,13 +53,15 @@
                         <a href="/admin/pizzaria/{{ pizzaria.id }}/editar" class="btn-edit">
                             Editar
                         </a>
-                        <button class="btn-duplicate"
-                            onclick="duplicarPizzaria('{{ pizzaria.id }}', '{{ pizzaria.nome }}', '{{ pizzaria.slug }}')">
+                        <button class="btn-duplicate" data-pizzaria-id="{{ pizzaria.id }}"
+                            data-pizzaria-nome="{{ pizzaria.nome }}" data-pizzaria-slug="{{ pizzaria.slug }}"
+                            onclick="handleDuplicate(this)">
                             Duplicar
                         </button>
                         <button
                             class="btn-toggle {{ 'btn-desativar' if (pizzaria.status or 'ativo') == 'ativo' else 'btn-ativar' }}"
-                            onclick="toggleStatus('{{ pizzaria.id }}', '{{ pizzaria.status or 'ativo' }}')">
+                            data-pizzaria-id="{{ pizzaria.id }}" data-pizzaria-status="{{ pizzaria.status or 'ativo' }}"
+                            onclick="handleToggleStatus(this)">
                             {{ "Desativar" if (pizzaria.status or 'ativo') == 'ativo' else "Ativar" }}
                         </button>
                         <button class="btn-delete" onclick="removePizzaria('{{ pizzaria.id }}')">
@@ -79,7 +81,49 @@
             window.location.reload();
         }
 
+        // Funções com data-attributes (sem problemas de aspas)
+        function handleDuplicate(button) {
+            console.log("=== DEBUG FRONTEND DUPLICATE: Botão clicado");
+            console.log("=== DEBUG FRONTEND DUPLICATE: Elemento button:", button);
+            console.log("=== DEBUG FRONTEND DUPLICATE: Dataset:", button.dataset);
+
+            const id = button.dataset.pizzariaId;
+            const nome = button.dataset.pizzariaNome;
+            const slug = button.dataset.pizzariaSlug;
+
+            console.log("=== DEBUG FRONTEND DUPLICATE: Dados extraídos:", { id, nome, slug });
+
+            if (!id || !nome || !slug) {
+                console.error("=== ERRO: Dados faltando no data-attributes");
+                alert("Erro: Dados incompletos para duplicação");
+                return;
+            }
+
+            duplicarPizzaria(id, nome, slug);
+        }
+
+        function handleToggleStatus(button) {
+            console.log("=== DEBUG FRONTEND TOGGLE: Botão clicado");
+            console.log("=== DEBUG FRONTEND TOGGLE: Elemento button:", button);
+            console.log("=== DEBUG FRONTEND TOGGLE: Dataset:", button.dataset);
+
+            const id = button.dataset.pizzariaId;
+            const status = button.dataset.pizzariaStatus;
+
+            console.log("=== DEBUG FRONTEND TOGGLE: Dados extraídos:", { id, status });
+
+            if (!id || !status) {
+                console.error("=== ERRO: Dados faltando no data-attributes");
+                alert("Erro: Dados incompletos para alterar status");
+                return;
+            }
+
+            toggleStatus(id, status);
+        }
+
         async function duplicarPizzaria(id, nome, slug) {
+            console.log("=== DEBUG API DUPLICATE: Iniciando função com:", { id, nome, slug });
+
             // Pedir novo nome e slug
             const novoNome = prompt("Nome da nova pizzaria:", `${nome} - Cópia`);
             if (!novoNome) return;
@@ -87,11 +131,21 @@
             const novoSlug = prompt("Slug da nova pizzaria (sem espaços, minúsculas):", `${slug}-copia`);
             if (!novoSlug) return;
 
+            console.log("=== DEBUG API DUPLICATE: Novos dados:", { novoNome, novoSlug });
+
             // Validar slug
             if (!/^[a-z0-9-]+$/.test(novoSlug)) {
                 alert("Slug inválido! Use apenas letras minúsculas, números e traços.");
                 return;
             }
+
+            const payload = {
+                nome: novoNome,
+                slug: novoSlug
+            };
+
+            console.log("=== DEBUG API DUPLICATE: Payload a ser enviado:", payload);
+            console.log("=== DEBUG API DUPLICATE: URL da requisição:", `/admin/api/pizzarias/${id}/duplicar`);
 
             try {
                 const response = await fetch(`/admin/api/pizzarias/${id}/duplicar`, {
@@ -99,13 +153,14 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        nome: novoNome,
-                        slug: novoSlug
-                    })
+                    body: JSON.stringify(payload)
                 });
 
+                console.log("=== DEBUG API DUPLICATE: Response status:", response.status);
+                console.log("=== DEBUG API DUPLICATE: Response headers:", response.headers);
+
                 const result = await response.json();
+                console.log("=== DEBUG API DUPLICATE: Response body:", result);
 
                 if (response.ok) {
                     alert("Pizzaria duplicada com sucesso!");
@@ -114,12 +169,14 @@
                     alert("Erro ao duplicar: " + (result.message || "Erro desconhecido"));
                 }
             } catch (error) {
-                console.error("Erro:", error);
+                console.error("=== ERRO API DUPLICATE:", error);
                 alert("Erro ao duplicar pizzaria");
             }
         }
 
         async function toggleStatus(id, statusAtual) {
+            console.log("=== DEBUG API TOGGLE: Iniciando função com:", { id, statusAtual });
+
             const novoStatus = statusAtual === 'ativo' ? 'desativado' : 'ativo';
             const confirmMessage = statusAtual === 'ativo'
                 ? "Tem certeza que deseja desativar esta pizzaria? O site ficará inacessível para clientes."
@@ -127,18 +184,27 @@
 
             if (!confirm(confirmMessage)) return;
 
+            const payload = {
+                status: novoStatus
+            };
+
+            console.log("=== DEBUG API TOGGLE: Payload a ser enviado:", payload);
+            console.log("=== DEBUG API TOGGLE: URL da requisição:", `/admin/api/pizzarias/${id}/status`);
+
             try {
                 const response = await fetch(`/admin/api/pizzarias/${id}/status`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        status: novoStatus
-                    })
+                    body: JSON.stringify(payload)
                 });
 
+                console.log("=== DEBUG API TOGGLE: Response status:", response.status);
+                console.log("=== DEBUG API TOGGLE: Response headers:", response.headers);
+
                 const result = await response.json();
+                console.log("=== DEBUG API TOGGLE: Response body:", result);
 
                 if (response.ok) {
                     alert(`Pizzaria ${novoStatus} com sucesso!`);
@@ -147,7 +213,7 @@
                     alert("Erro ao alterar status: " + (result.message || "Erro desconhecido"));
                 }
             } catch (error) {
-                console.error("Erro:", error);
+                console.error("=== ERRO API TOGGLE:", error);
                 alert("Erro ao alterar status da pizzaria");
             }
         }
