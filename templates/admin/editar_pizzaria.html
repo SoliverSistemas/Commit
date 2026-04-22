@@ -10,289 +10,361 @@
 </head>
 
 <body>
-    <main class="content">
-        <h1>Painel da pizzaria - {{ pizzaria.nome }}</h1>
-        <a href="/admin">Voltar</a>
-
-        <section class="tab active">
-            <h2>Configurações gerais</h2>
-            <div class="form-grid">
-                <input type="hidden" id="pizzaria_id" value="{{ pizzaria.id }}">
-                <label>Nome</label><input id="nome" value="{{ pizzaria.nome }}">
-                <label>Slug</label><input id="slug" value="{{ pizzaria.slug }}">
-                <label>WhatsApp</label><input id="whatsapp" value="{{ pizzaria.whatsapp }}">
-                <label>CEP da loja</label><input id="cep" value="{{ pizzaria.cep or '' }}">
-                <label>Latitude da loja</label><input id="latitude" value="{{ pizzaria.latitude or '' }}"
-                    placeholder="-23.550520">
-                <label>Longitude da loja</label><input id="longitude" value="{{ pizzaria.longitude or '' }}"
-                    placeholder="-46.633308">
-                <label>Geolocalização</label><button id="geocodeStoreButton" class="ghost">Buscar lat/lng por
-                    CEP/endereço</button>
-                <label>Endereco</label><input id="endereco" value="{{ pizzaria.endereco }}">
-                <label>Logo URL</label><input id="logo_url" value="{{ pizzaria.logo_url }}">
-                <label>Banner URL</label><input id="banner_url" value="{{ pizzaria.banner_url }}">
-                <label>Abertura</label><input id="horario_abertura" value="{{ pizzaria.horario_abertura }}">
-                <label>Fechamento</label><input id="horario_fechamento" value="{{ pizzaria.horario_fechamento }}">
-                <label>Status</label>
-                <select id="status_override">
-                    <option value="auto" {% if pizzaria.status_override=='auto' %}selected{% endif %}>auto</option>
-                    <option value="aberto" {% if pizzaria.status_override=='aberto' %}selected{% endif %}>aberto
-                    </option>
-                    <option value="fechado" {% if pizzaria.status_override=='fechado' %}selected{% endif %}>fechado
-                    </option>
-                </select>
-                <label class="textarea-label">Sobre</label>
-                <textarea id="sobre" rows="4"
-                    placeholder="Descrição sobre a pizzaria">{{ pizzaria.sobre or '' }}</textarea>
-                <label>Tempo entrega min</label><input id="tempo_entrega_min" type="number"
-                    value="{{ pizzaria.tempo_entrega_min }}">
-                <label>Tempo entrega max</label><input id="tempo_entrega_max" type="number"
-                    value="{{ pizzaria.tempo_entrega_max }}">
-                <label>Cor fundo principal</label>
-                <div class="color-input-wrap"><input id="cor_fundo_principal" type="color"
-                        value="{{ pizzaria.cor_fundo_principal }}"><span class="color-value"></span></div>
-                <label>Cor fundo secundário</label>
-                <div class="color-input-wrap"><input id="cor_fundo_secundario" type="color"
-                        value="{{ pizzaria.cor_fundo_secundario }}"><span class="color-value"></span></div>
-                <label>Cor títulos</label>
-                <div class="color-input-wrap"><input id="cor_titulos" type="color"
-                        value="{{ pizzaria.cor_titulos }}"><span class="color-value"></span></div>
-                <label>Cor texto</label>
-                <div class="color-input-wrap"><input id="cor_texto" type="color" value="{{ pizzaria.cor_texto }}"><span
-                        class="color-value"></span></div>
-                <label>Cor texto secundário</label>
-                <div class="color-input-wrap"><input id="cor_texto_secundario" type="color"
-                        value="{{ pizzaria.cor_texto_secundario }}"><span class="color-value"></span></div>
-                <label>Cor dos cards (surface)</label>
-                <div class="color-input-wrap"><input id="cor_surface" type="color"
-                        value="{{ pizzaria.cor_surface or '#ffffff' }}"><span class="color-value"></span></div>
-                <label>Botão primário bg</label>
-                <div class="color-input-wrap"><input id="botao_primario_bg" type="color"
-                        value="{{ pizzaria.botao_primario_bg }}"><span class="color-value"></span></div>
-                <label>Botão primário texto</label>
-                <div class="color-input-wrap"><input id="botao_primario_texto" type="color"
-                        value="{{ pizzaria.botao_primario_texto }}"><span class="color-value"></span></div>
-                <label>Botão primário hover</label>
-                <div class="color-input-wrap"><input id="botao_primario_hover" type="color"
-                        value="{{ pizzaria.botao_primario_hover }}"><span class="color-value"></span></div>
-                <label>Botão secundário bg</label>
-                <div class="color-input-wrap"><input id="botao_secundario_bg" type="color"
-                        value="{{ pizzaria.botao_secundario_bg }}"><span class="color-value"></span></div>
-                <label>Botão secundário texto</label>
-                <div class="color-input-wrap"><input id="botao_secundario_texto" type="color"
-                        value="{{ pizzaria.botao_secundario_texto }}"><span class="color-value"></span></div>
-                <label>Botão secundário hover</label>
-                <div class="color-input-wrap"><input id="botao_secundario_hover" type="color"
-                        value="{{ pizzaria.botao_secundario_hover }}"><span class="color-value"></span></div>
-                <label>Botão destaque bg</label>
-                <div class="color-input-wrap"><input id="botao_destaque_bg" type="color"
-                        value="{{ pizzaria.botao_destaque_bg }}"><span class="color-value"></span></div>
-                <label>Botão destaque texto</label>
-                <div class="color-input-wrap"><input id="botao_destaque_texto" type="color"
-                        value="{{ pizzaria.botao_destaque_texto }}"><span class="color-value"></span></div>
-                <label>Botão destaque hover</label>
-                <div class="color-input-wrap"><input id="botao_destaque_hover" type="color"
-                        value="{{ pizzaria.botao_destaque_hover }}"><span class="color-value"></span></div>
-                <label>Botão neutro bg</label>
-                <div class="color-input-wrap"><input id="botao_neutro_bg" type="color"
-                        value="{{ pizzaria.botao_neutro_bg }}"><span class="color-value"></span></div>
-                <label>Botão neutro texto</label>
-                <div class="color-input-wrap"><input id="botao_neutro_texto" type="color"
-                        value="{{ pizzaria.botao_neutro_texto }}"><span class="color-value"></span></div>
-                <label>Botão neutro hover</label>
-                <div class="color-input-wrap"><input id="botao_neutro_hover" type="color"
-                        value="{{ pizzaria.botao_neutro_hover }}"><span class="color-value"></span></div>
-                <label>Texto botão Mais</label><input id="texto_botao_mais" value="{{ pizzaria.texto_botao_mais }}">
-                <label>Texto botão Finalizar</label><input id="texto_botao_finalizar"
-                    value="{{ pizzaria.texto_botao_finalizar }}">
-                <label>Texto botão Cancelar</label><input id="texto_botao_cancelar"
-                    value="{{ pizzaria.texto_botao_cancelar }}">
-                <label>Texto botão Ver mais</label><input id="texto_botao_ver_mais"
-                    value="{{ pizzaria.texto_botao_ver_mais }}">
-                <label class="textarea-label">Sobre a pizzaria</label><textarea id="sobre" rows="4"
-                    placeholder="Descrição sobre a pizzaria que aparecerá na seção 'Sobre Nossa Pizzaria'">{{ pizzaria.sobre or '' }}</textarea>
-
-                <!-- Lista de Cupons Visíveis (abaixo do sobre) -->
-                <div id="cuponsVisiveisLista" style="margin-top: 16px;"></div>
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <h2>🍕 Admin Master</h2>
+                <span class="subtitle">Painel de Gerenciamento</span>
             </div>
 
-            <!-- Cupons de Desconto -->
-            <div class="cupons-section"
-                style="margin-top: 32px; padding-top: 24px; border-top: 2px solid var(--stroke, #e5e5e5);">
-                <h3 style="margin-bottom: 16px; font-size: 1.25rem;">🎟️ Cupons de Desconto</h3>
-                <p style="color: var(--text-soft, #666); margin-bottom: 16px;">Adicione cupons com valor em R$ ou
-                    percentual (%)</p>
+            <nav class="nav-menu">
+                <a href="/admin" class="nav-item {% if request.endpoint == 'admin_home' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Pizzarias</span>
+                </a>
+                <a href="/admin/paletas" class="nav-item {% if request.endpoint == 'admin_paletas' %}active{% endif %}">
+                    <span class="nav-icon">🎨</span>
+                    <span class="nav-text">Paletas</span>
+                </a>
+                <a href="/admin/categorias"
+                    class="nav-item {% if request.endpoint == 'admin_categorias_globais' %}active{% endif %}">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Categorias</span>
+                </a>
+            </nav>
 
-                <div class="inline" style="gap: 8px; margin-bottom: 16px;">
-                    <input id="cupom_codigo" placeholder="Código (ex: CUPOM10)" style="text-transform: uppercase;">
-                    <input id="cupom_valor" type="number" step="0.01" placeholder="Valor">
-                    <select id="cupom_tipo">
-                        <option value="fixed">R$ (reais)</option>
-                        <option value="percent">% (percentual)</option>
-                    </select>
-                    <button id="addCupom" class="btn-primary">Adicionar Cupom</button>
+            <div class="sidebar-footer">
+                <a href="/admin/logout" class="nav-item logout">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Sair</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="header-content">
+                    <h1>Editar Pizzaria - {{ pizzaria.nome }}</h1>
+                    <p>Configure os detalhes da pizzaria</p>
                 </div>
+            </header>
 
-                <div id="listaCupons" class="sortable-list" style="margin-top: 12px;"></div>
-            </div>
+            <div class="content">
+                <a href="/admin" class="btn-back">← Voltar</a>
 
-            <button id="btnSalvar">Salvar configurações</button>
-            <span id="saveStatus" class="save-status">Pronto</span>
-            <div class="theme-preview" id="themePreview">
-                <h3>Preview do tema</h3>
-                <div class="preview-canvas">
-                    <button class="preview-btn primary">Primario</button>
-                    <button class="preview-btn secondary">Secundario</button>
-                    <button class="preview-btn highlight">Destaque</button>
-                    <button class="preview-btn neutral">Neutro</button>
+                <section class="tab active">
+                    <h2>Configurações gerais</h2>
+                    <div class="form-grid">
+                        <input type="hidden" id="pizzaria_id" name="pizzaria_id" value="{{ pizzaria.id }}">
+                        <label>Nome</label><input id="nome" name="nome" value="{{ pizzaria.nome }}">
+                        <label>Slug</label><input id="slug" name="slug" value="{{ pizzaria.slug }}">
+                        <label>WhatsApp</label><input id="whatsapp" name="whatsapp" value="{{ pizzaria.whatsapp }}">
+                        <label>CEP da loja</label><input id="cep" name="cep" value="{{ pizzaria.cep or '' }}">
+                        <label>Latitude da loja</label><input id="latitude" name="latitude"
+                            value="{{ pizzaria.latitude or '' }}" placeholder="-23.550520">
+                        <label>Longitude da loja</label><input id="longitude" name="longitude"
+                            value="{{ pizzaria.longitude or '' }}" placeholder="-46.633308">
+                        <label>Geolocalização</label><button id="geocodeStoreButton" class="ghost"
+                            onclick="buscarGeolocalizacao()">Buscar lat/lng por
+                            CEP/endereço</button>
+                        <label>Endereco</label><input id="endereco" name="endereco" value="{{ pizzaria.endereco }}">
+                        <label>Logo URL</label><input id="logo_url" name="logo_url" value="{{ pizzaria.logo_url }}">
+                        <label>Banner URL</label><input id="banner_url" name="banner_url"
+                            value="{{ pizzaria.banner_url }}">
+                        <label>Abertura</label><input id="horario_abertura" name="horario_abertura"
+                            value="{{ pizzaria.horario_abertura }}">
+                        <label>Fechamento</label><input id="horario_fechamento" name="horario_fechamento"
+                            value="{{ pizzaria.horario_fechamento }}">
+                        <label>Status</label>
+                        <select id="status_override" name="status_override">
+                            <option value="auto" {% if pizzaria.status_override=='auto' %}selected{% endif %}>auto
+                            </option>
+                            <option value="aberto" {% if pizzaria.status_override=='aberto' %}selected{% endif %}>aberto
+                            </option>
+                            <option value="fechado" {% if pizzaria.status_override=='fechado' %}selected{% endif %}>
+                                fechado
+                            </option>
+                        </select>
+                        <label class="textarea-label">Sobre</label>
+                        <textarea id="sobre" name="sobre" rows="4"
+                            placeholder="Descrição sobre a pizzaria">{{ pizzaria.sobre or '' }}</textarea>
+                        <label>Tempo entrega min</label><input id="tempo_entrega_min" name="tempo_entrega_min"
+                            type="number" value="{{ pizzaria.tempo_entrega_min }}">
+                        <label>Tempo entrega max</label><input id="tempo_entrega_max" name="tempo_entrega_max"
+                            type="number" value="{{ pizzaria.tempo_entrega_max }}">
+                        <label>Cor fundo principal</label>
+                        <div class="color-input-wrap"><input id="cor_fundo_principal" name="cor_fundo_principal"
+                                type="color" value="{{ pizzaria.cor_fundo_principal }}"><span
+                                class="color-value"></span></div>
+                        <label>Cor fundo secundário</label>
+                        <div class="color-input-wrap"><input id="cor_fundo_secundario" name="cor_fundo_secundario"
+                                type="color" value="{{ pizzaria.cor_fundo_secundario }}"><span
+                                class="color-value"></span></div>
+                        <label>Cor títulos</label>
+                        <div class="color-input-wrap"><input id="cor_titulos" name="cor_titulos" type="color"
+                                value="{{ pizzaria.cor_titulos }}"><span class="color-value"></span></div>
+                        <label>Cor texto</label>
+                        <div class="color-input-wrap"><input id="cor_texto" name="cor_texto" type="color"
+                                value="{{ pizzaria.cor_texto }}"><span class="color-value"></span></div>
+                        <label>Cor texto secundário</label>
+                        <div class="color-input-wrap"><input id="cor_texto_secundario" name="cor_texto_secundario"
+                                type="color" value="{{ pizzaria.cor_texto_secundario }}"><span
+                                class="color-value"></span></div>
+                        <label>Cor dos cards (surface)</label>
+                        <div class="color-input-wrap"><input id="cor_surface" name="cor_surface" type="color"
+                                value="{{ pizzaria.cor_surface or '#ffffff' }}"><span class="color-value"></span></div>
+                        <label>Botão primário bg</label>
+                        <div class="color-input-wrap"><input id="botao_primario_bg" name="botao_primario_bg"
+                                type="color" value="{{ pizzaria.botao_primario_bg }}"><span class="color-value"></span>
+                        </div>
+                        <label>Botão primário texto</label>
+                        <div class="color-input-wrap"><input id="botao_primario_texto" name="botao_primario_texto"
+                                type="color" value="{{ pizzaria.botao_primario_texto }}"><span
+                                class="color-value"></span></div>
+                        <label>Botão primário hover</label>
+                        <div class="color-input-wrap"><input id="botao_primario_hover" name="botao_primario_hover"
+                                type="color" value="{{ pizzaria.botao_primario_hover }}"><span
+                                class="color-value"></span></div>
+                        <label>Botão secundário bg</label>
+                        <div class="color-input-wrap"><input id="botao_secundario_bg" name="botao_secundario_bg"
+                                type="color" value="{{ pizzaria.botao_secundario_bg }}"><span
+                                class="color-value"></span></div>
+                        <label>Botão secundário texto</label>
+                        <div class="color-input-wrap"><input id="botao_secundario_texto" name="botao_secundario_texto"
+                                type="color" value="{{ pizzaria.botao_secundario_texto }}"><span
+                                class="color-value"></span>
+                        </div>
+                        <label>Botão secundário hover</label>
+                        <div class="color-input-wrap"><input id="botao_secundario_hover" name="botao_secundario_hover"
+                                type="color" value="{{ pizzaria.botao_secundario_hover }}"><span
+                                class="color-value"></span>
+                        </div>
+                        <label>Botão destaque bg</label>
+                        <div class="color-input-wrap"><input id="botao_destaque_bg" name="botao_destaque_bg"
+                                type="color" value="{{ pizzaria.botao_destaque_bg }}"><span class="color-value"></span>
+                        </div>
+                        <label>Botão destaque texto</label>
+                        <div class="color-input-wrap"><input id="botao_destaque_texto" name="botao_destaque_texto"
+                                type="color" value="{{ pizzaria.botao_destaque_texto }}"><span
+                                class="color-value"></span></div>
+                        <label>Botão destaque hover</label>
+                        <div class="color-input-wrap"><input id="botao_destaque_hover" name="botao_destaque_hover"
+                                type="color" value="{{ pizzaria.botao_destaque_hover }}"><span
+                                class="color-value"></span></div>
+                        <label>Botão neutro bg</label>
+                        <div class="color-input-wrap"><input id="botao_neutro_bg" name="botao_neutro_bg" type="color"
+                                value="{{ pizzaria.botao_neutro_bg }}"><span class="color-value"></span></div>
+                        <label>Botão neutro texto</label>
+                        <div class="color-input-wrap"><input id="botao_neutro_texto" name="botao_neutro_texto"
+                                type="color" value="{{ pizzaria.botao_neutro_texto }}"><span class="color-value"></span>
+                        </div>
+                        <label>Botão neutro hover</label>
+                        <div class="color-input-wrap"><input id="botao_neutro_hover" name="botao_neutro_hover"
+                                type="color" value="{{ pizzaria.botao_neutro_hover }}"><span class="color-value"></span>
+                        </div>
+                        <label>Texto botão Mais</label><input id="texto_botao_mais" name="texto_botao_mais"
+                            value="{{ pizzaria.texto_botao_mais }}">
+                        <label>Texto botão Finalizar</label><input id="texto_botao_finalizar"
+                            name="texto_botao_finalizar" value="{{ pizzaria.texto_botao_finalizar }}">
+                        <label>Texto botão Cancelar</label><input id="texto_botao_cancelar" name="texto_botao_cancelar"
+                            value="{{ pizzaria.texto_botao_cancelar }}">
+                        <label>Texto botão Ver mais</label><input id="texto_botao_ver_mais" name="texto_botao_ver_mais"
+                            value="{{ pizzaria.texto_botao_ver_mais }}">
+                        <label class="textarea-label">Sobre a pizzaria</label><textarea id="sobre" rows="4"
+                            placeholder="Descrição sobre a pizzaria que aparecerá na seção 'Sobre Nossa Pizzaria'">{{ pizzaria.sobre or '' }}</textarea>
+
+                        <!-- Lista de Cupons Visíveis (abaixo do sobre) -->
+                        <div id="cuponsVisiveisLista" style="margin-top: 16px;"></div>
+                    </div>
+
+                    <!-- Cupons de Desconto -->
+                    <div class="cupons-section"
+                        style="margin-top: 32px; padding-top: 24px; border-top: 2px solid var(--stroke, #e5e5e5);">
+                        <h3 style="margin-bottom: 16px; font-size: 1.25rem;">🎟️ Cupons de Desconto</h3>
+                        <p style="color: var(--text-soft, #666); margin-bottom: 16px;">Adicione cupons com valor em R$
+                            ou
+                            percentual (%)</p>
+
+                        <div class="inline" style="gap: 8px; margin-bottom: 16px;">
+                            <input id="cupom_codigo" placeholder="Código (ex: CUPOM10)"
+                                style="text-transform: uppercase;">
+                            <input id="cupom_valor" type="number" step="0.01" placeholder="Valor">
+                            <select id="cupom_tipo">
+                                <option value="fixed">R$ (reais)</option>
+                                <option value="percent">% (percentual)</option>
+                            </select>
+                            <button id="addCupom" class="btn-primary">Adicionar Cupom</button>
+                        </div>
+
+                        <div id="listaCupons" class="sortable-list" style="margin-top: 12px;"></div>
+                    </div>
+
+                    <button id="btnSalvar">Salvar configurações</button>
+                    <span id="saveStatus" class="save-status">Pronto</span>
+                    <div class="theme-preview" id="themePreview">
+                        <h3>Preview do tema</h3>
+                        <div class="preview-canvas">
+                            <button class="preview-btn primary">Primario</button>
+                            <button class="preview-btn secondary">Secundario</button>
+                            <button class="preview-btn highlight">Destaque</button>
+                            <button class="preview-btn neutral">Neutro</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tab active">
+                    <h2>Categorias e Subcategorias</h2>
+                    <p style="color: #666; margin-bottom: 20px;">
+                        Gerencie categorias e subcategorias globais do sistema.
+                    </p>
+
+                    <!-- Criar Nova Categoria -->
+                    <div class="category-section"
+                        style="margin-bottom: 32px; padding: 24px; background: #f8fafc; border-radius: 12px;">
+                        <h3>➕ Criar Nova Categoria</h3>
+                        <div class="inline" style="margin-top: 16px; gap: 12px;">
+                            <input id="novaCategoriaNome" placeholder="Nome da categoria" style="flex: 1;">
+                            <input id="novaCategoriaIcone" placeholder="Ícone (emoji)" maxlength="2"
+                                style="width: 100px;">
+                            <button id="btnCriarCategoria" class="btn-primary"
+                                onclick="criarNovaCategoria()">Criar</button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Categorias -->
+                    <div class="category-section">
+                        <h3>📂 Categorias Globais</h3>
+                        <div id="categoriasDisponiveis">
+                            <p>Carregando categorias...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tab active">
+                    <h2>Produtos</h2>
+                    <div class="inline">
+                        <input id="produto_nome" placeholder="Nome do produto">
+                        <select id="produto_categoria">
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                        <select id="produto_subcategoria">
+                            <option value="">Selecione uma subcategoria (opcional)</option>
+                        </select>
+                        <input id="produto_preco" type="number" step="0.01" placeholder="Preco base">
+                        <input id="produto_descricao" placeholder="Descricao curta">
+                        <input id="produto_imagem" placeholder="URL imagem">
+                        <button id="addProduto">Adicionar</button>
+                    </div>
+                    <div id="listaProdutos" class="sortable-list"></div>
+                </section>
+
+                <section class="tab active">
+                    <h2>Configurações de Frete</h2>
+
+                    <!-- Toggle Frete Fixo -->
+                    <div class="form-group">
+                        <label class="toggle-label">
+                            <span>Exibir frete fixo no site?</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="frete_fixo_ativo" name="frete_fixo_ativo" {% if
+                                    pizzaria.frete_fixo_ativo %}checked{% endif %}>
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                        <p class="toggle-hint">
+                            <span id="frete_fixo_hint">
+                                {% if pizzaria.frete_fixo_ativo %}
+                                Sim → usa frete fixo definido abaixo
+                                {% else %}
+                                Não → confirmar no WhatsApp
+                                {% endif %}
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Valor do Frete Fixo (aparece quando toggle está ativo) -->
+                    <div class="form-group" id="frete_fixo_valor_group" {% if not pizzaria.frete_fixo_ativo
+                        %}style="display: none;" {% endif %}>
+                        <label for="frete_fixo_valor">Valor do frete fixo</label>
+                        <div class="input-with-prefix">
+                            <span class="input-prefix">R$</span>
+                            <input type="number" id="frete_fixo_valor" name="frete_fixo_valor" step="0.01" min="0"
+                                value="{{ pizzaria.frete_fixo_valor or 0 }}" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <!-- Textos Personalizados -->
+                    <div class="form-group">
+                        <label for="texto_frete_whatsapp">Texto para WhatsApp (exibido no carrinho)</label>
+                        <input type="text" id="texto_frete_whatsapp" name="texto_frete_whatsapp"
+                            placeholder="Taxa de entrega informada no WhatsApp"
+                            value="{{ pizzaria.texto_frete_whatsapp or 'Taxa de entrega informada no WhatsApp' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="texto_frete_regiao">Texto para informações de região (exibido no site)</label>
+                        <input type="text" id="texto_frete_regiao" name="texto_frete_regiao"
+                            placeholder="Entrega conforme região"
+                            value="{{ pizzaria.texto_frete_regiao or 'Entrega conforme região' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="texto_frete_confirmado">Texto para valor confirmado (exibido no carrinho)</label>
+                        <input type="text" id="texto_frete_confirmado" name="texto_frete_confirmado"
+                            placeholder="Valor final confirmado pelo atendente"
+                            value="{{ pizzaria.texto_frete_confirmado or 'Valor final confirmado pelo atendente' }}">
+                    </div>
+                    <button class="btn-primary" onclick="salvarConfiguracoesFrete()">Salvar Configurações de
+                        Frete</button>
+                </section>
+
+                <section class="tab active">
+                    <h2>Preview público em tempo real</h2>
+                    <div class="preview-actions">
+                        <button id="refreshPreview" class="ghost">Atualizar preview</button>
+                        <a class="ghost" target="_blank" href="/{{ pizzaria.slug }}">Abrir em nova aba</a>
+                    </div>
+                    <iframe id="storePreviewFrame" class="store-preview" src="/{{ pizzaria.slug }}"></iframe>
+                </section>
+        </main>
+
+        <div id="crudModal" class="crud-modal hidden">
+            <div class="crud-card">
+                <h3 id="crudTitle">Editar</h3>
+                <div id="crudFields"></div>
+                <div class="crud-actions">
+                    <button class="ghost" id="crudCancel">Cancelar</button>
+                    <button id="crudSave">Salvar</button>
                 </div>
-            </div>
-        </section>
-
-        <section class="tab active">
-            <h2>Categorias e Subcategorias</h2>
-
-            <!-- Adicionar Categoria Principal -->
-            <div class="category-section">
-                <h3>Categoria Principal</h3>
-                <div class="inline">
-                    <input id="categoria_nome" placeholder="Nome da categoria">
-                    <input id="categoria_icone" placeholder="Icone (ex: 🍕)">
-                    <select id="categoria_variant">
-                        <option value="primario">primario</option>
-                        <option value="secundario">secundario</option>
-                        <option value="destaque">destaque</option>
-                        <option value="neutro">neutro</option>
-                    </select>
-                    <button id="addCategoria">Adicionar Categoria</button>
-                </div>
-            </div>
-
-            <!-- Adicionar Subcategoria -->
-            <div class="subcategory-section">
-                <h3>Subcategoria</h3>
-                <div class="inline">
-                    <select id="subcategoria_parent">
-                        <option value="">Selecione uma categoria principal</option>
-                    </select>
-                    <input id="subcategoria_nome" placeholder="Nome da subcategoria">
-                    <input id="subcategoria_icone" placeholder="Icone (opcional)">
-                    <select id="subcategoria_variant">
-                        <option value="primario">primario</option>
-                        <option value="secundario">secundario</option>
-                        <option value="destaque">destaque</option>
-                        <option value="neutro">neutro</option>
-                    </select>
-                    <button id="addSubcategoria">Adicionar Subcategoria</button>
-                </div>
-            </div>
-
-            <!-- Lista Hierárquica -->
-            <div class="hierarchical-list">
-                <div id="listaCategorias" class="sortable-list"></div>
-            </div>
-        </section>
-
-        <section class="tab active">
-            <h2>Produtos</h2>
-            <div class="inline">
-                <input id="produto_nome" placeholder="Nome do produto">
-                <select id="produto_categoria">
-                    <option value="">Selecione uma categoria</option>
-                </select>
-                <select id="produto_subcategoria">
-                    <option value="">Selecione uma subcategoria (opcional)</option>
-                </select>
-                <input id="produto_preco" type="number" step="0.01" placeholder="Preco base">
-                <input id="produto_descricao" placeholder="Descricao curta">
-                <input id="produto_imagem" placeholder="URL imagem">
-                <button id="addProduto">Adicionar</button>
-            </div>
-            <div id="listaProdutos" class="sortable-list"></div>
-        </section>
-
-        <section class="tab active">
-            <h2>Combos Inteligentes</h2>
-
-            <!-- Configuração de Sugestões -->
-            <div class="combo-section">
-                <h3>Botões de Sugestão (O que você deseja pedir?)</h3>
-                <div class="inline">
-                    <select id="sugestao_categoria">
-                        <option value="">Selecione uma categoria</option>
-                    </select>
-                    <button id="addSugestaoConfig">Adicionar ao Botão</button>
-                </div>
-                <div id="listaSugestaoConfig" class="sortable-list"></div>
-            </div>
-
-            <!-- Combos de Categorias -->
-            <div class="combo-section">
-                <h3>Combos de Categorias</h3>
-                <div class="inline">
-                    <select id="combo_categoria_origem">
-                        <option value="">Categoria Origem</option>
-                    </select>
-                    <select id="combo_categoria_destino">
-                        <option value="">Categoria Destino</option>
-                    </select>
-                    <button id="addCategoriaCombo">Adicionar Combo</button>
-                </div>
-                <div id="listaCategoriaCombos" class="sortable-list"></div>
-            </div>
-
-            <!-- Combos de Subcategorias -->
-            <div class="combo-section">
-                <h3>Combos de Subcategorias (Opcional)</h3>
-                <div class="inline">
-                    <select id="combo_subcategoria_origem">
-                        <option value="">Subcategoria Origem</option>
-                    </select>
-                    <select id="combo_subcategoria_destino">
-                        <option value="">Subcategoria Destino</option>
-                    </select>
-                    <button id="addSubcategoriaCombo">Adicionar Combo</button>
-                </div>
-                <div id="listaSubcategoriaCombos" class="sortable-list"></div>
-            </div>
-        </section>
-
-        <section class="tab active">
-            <h2>Frete por distancia</h2>
-            <div class="inline">
-                <input id="frete_min" type="number" step="0.1" placeholder="Km min">
-                <input id="frete_max" type="number" step="0.1" placeholder="Km max">
-                <input id="frete_valor" type="number" step="0.01" placeholder="Valor">
-                <button id="addFrete">Adicionar</button>
-            </div>
-            <div id="listaFrete" class="sortable-list"></div>
-        </section>
-
-        <section class="tab active">
-            <h2>Preview público em tempo real</h2>
-            <div class="preview-actions">
-                <button id="refreshPreview" class="ghost">Atualizar preview</button>
-                <a class="ghost" target="_blank" href="/{{ pizzaria.slug }}">Abrir em nova aba</a>
-            </div>
-            <iframe id="storePreviewFrame" class="store-preview" src="/{{ pizzaria.slug }}"></iframe>
-        </section>
-    </main>
-
-    <div id="crudModal" class="crud-modal hidden">
-        <div class="crud-card">
-            <h3 id="crudTitle">Editar</h3>
-            <div id="crudFields"></div>
-            <div class="crud-actions">
-                <button class="ghost" id="crudCancel">Cancelar</button>
-                <button id="crudSave">Salvar</button>
             </div>
         </div>
+        </main>
     </div>
 
     <script>
-        window.pizzaria = {{ pizzaria | tojson }};
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            if (!sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
     </script>
-    <script src="{{ url_for('static', filename='js/admin/editar_pizzaria.js') }}"></script>
+
+    <script>
+        window.pizzaria = {{ pizzaria | tojson | safe }};
+    </script>
+    <script
+        src="{{ url_for('static', filename='js/admin/editar_pizzaria_clean.js') }}?v={{ pizzaria.id or 'force' }}"></script>
 </body>
 
 </html>

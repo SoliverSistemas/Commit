@@ -1,0 +1,442 @@
+{% extends "pizzaria/base_simple.html" %}
+
+{% block title %}Cupons{% endblock %}
+{% block page_title %}Cupons{% endblock %}
+
+{% block content %}
+<div class="cupons-container">
+    <!-- Seção: Adicionar Cupom -->
+    <div class="add-section">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">➕ Criar Novo Cupom</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label" for="codigo">Código do Cupom</label>
+                    <input type="text" class="form-input" id="codigo" placeholder="Ex: PIZZA10">
+                    <small class="form-hint">Código que o cliente vai digitar</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="valor">Valor do Desconto</label>
+                    <input type="number" class="form-input" id="valor" placeholder="Ex: 10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="tipo">Tipo de Desconto</label>
+                    <select class="form-select" id="tipo">
+                        <option value="percent">Porcentagem (%)</option>
+                        <option value="fixed">Valor fixo (R$)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="adicionarCupom()">Criar Cupom</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção: Lista de Cupons -->
+    <div class="list-section">
+        <div class="section-header">
+            <h2>🎫 Cupons Cadastrados</h2>
+            <p>Gerencie seus cupons de desconto</p>
+        </div>
+
+        {% if cupons %}
+        <div class="coupons-list">
+            {% for c in cupons %}
+            <div class="coupon-item">
+                <div class="coupon-info">
+                    <div class="coupon-code">{{ c.codigo }}</div>
+                    <div class="coupon-value">
+                        {% if c.tipo == "percent" %}
+                        {{ c.valor }}% de desconto
+                        {% else %}
+                        R$ {{ c.valor }} de desconto
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="coupon-actions">
+                    <button class="btn btn-sm btn-primary"
+                        onclick="editarCupom('{{ c.id }}', '{{ c.codigo }}', '{{ c.valor }}', '{{ c.tipo }}')">✏️
+                        Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="deletarCupom('{{ c.id }}')">🗑️ Excluir</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">🎫</span>
+            <h3>Nenhum cupom cadastrado</h3>
+            <p>Crie seu primeiro cupom para oferecer descontos</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de Edição de Cupom -->
+<div id="edit-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Editar Cupom</h3>
+            <button class="modal-close" onclick="fecharModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-id">
+            <div class="form-group">
+                <label class="form-label" for="edit-codigo">Código do Cupom</label>
+                <input type="text" class="form-input" id="edit-codigo" placeholder="Ex: PIZZA10">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-valor">Valor do Desconto</label>
+                <input type="number" class="form-input" id="edit-valor" placeholder="Ex: 10">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="edit-tipo">Tipo de Desconto</label>
+                <select class="form-select" id="edit-tipo">
+                    <option value="percent">Porcentagem (%)</option>
+                    <option value="fixed">Valor fixo (R$)</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarEdicao()">Salvar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function adicionarCupom() {
+        const codigo = document.getElementById('codigo').value.trim();
+        const valor = document.getElementById('valor').value;
+        const tipo = document.getElementById('tipo').value;
+
+        if (!codigo) {
+            alert('❌ Por favor, digite o código do cupom');
+            return;
+        }
+
+        if (!valor) {
+            alert('❌ Por favor, digite o valor do desconto');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pizzaria/api/cupons', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo, valor, tipo })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ Cupom criado com sucesso!');
+                location.reload();
+            } else {
+                alert('❌ Erro ao criar cupom: ' + (result.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('❌ Erro de conexão. Tente novamente.');
+        }
+    }
+
+    async function deletarCupom(id) {
+        if (!confirm('Tem certeza que deseja excluir este cupom?')) return;
+
+        try {
+            const response = await fetch(`/pizzaria/api/cupons/${id}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ Cupom excluído com sucesso!');
+                location.reload();
+            } else {
+                alert('❌ Erro ao excluir cupom: ' + (result.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('❌ Erro de conexão. Tente novamente.');
+        }
+    }
+
+    function editarCupom(id, codigo, valor, tipo) {
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-codigo').value = codigo;
+        document.getElementById('edit-valor').value = valor;
+        document.getElementById('edit-tipo').value = tipo;
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    async function salvarEdicao() {
+        const id = document.getElementById('edit-id').value;
+        const codigo = document.getElementById('edit-codigo').value.trim();
+        const valor = document.getElementById('edit-valor').value;
+        const tipo = document.getElementById('edit-tipo').value;
+
+        if (!codigo) {
+            alert('❌ Por favor, digite o código do cupom');
+            return;
+        }
+
+        if (!valor) {
+            alert('❌ Por favor, digite o valor do desconto');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/pizzaria/api/cupons/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo, valor, tipo })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ Cupom atualizado com sucesso!');
+                fecharModal();
+                location.reload();
+            } else {
+                alert('❌ Erro ao atualizar cupom: ' + (result.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('❌ Erro de conexão. Tente novamente.');
+        }
+    }
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .cupons-container {
+        max-width: 800px;
+    }
+
+    .add-section {
+        margin-bottom: 32px;
+    }
+
+    .list-section {
+        margin-bottom: 32px;
+    }
+
+    .section-header {
+        margin-bottom: 16px;
+    }
+
+    .section-header h2 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 4px;
+    }
+
+    .section-header p {
+        font-size: 14px;
+        color: #6b7280;
+    }
+
+    .coupons-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .coupon-item {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #ef4444;
+    }
+
+    .coupon-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .coupon-code {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        text-transform: uppercase;
+    }
+
+    .coupon-value {
+        font-size: 14px;
+        color: #6b7280;
+    }
+
+    .coupon-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .empty-state {
+        background: white;
+        border-radius: 12px;
+        padding: 48px;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: #6b7280;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .modal-header h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6b7280;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: background 0.2s ease;
+    }
+
+    .modal-close:hover {
+        background: #f3f4f6;
+    }
+
+    .modal-body {
+        margin-bottom: 24px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background: #dc2626;
+    }
+
+    .btn-secondary {
+        background: #f3f4f6;
+        color: #1f2937;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+        background: #e5e7eb;
+    }
+
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    @media (max-width: 768px) {
+        .coupon-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .coupon-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+{% endblock %}

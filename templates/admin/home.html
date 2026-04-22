@@ -11,16 +11,23 @@
 
 <body>
     <div class="layout">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <h2>Painel</h2>
             <nav>
                 <a href="/admin" class="active">Pizzarias</a>
+                <a href="/admin/categorias-globais">Categorias Globais</a>
+                <a href="/admin/paletas">Paletas</a>
                 <a href="/admin/pizzaria/nova">Nova Pizzaria</a>
                 <a href="/admin/logout">Sair</a>
             </nav>
         </aside>
         <main class="main">
             <div class="header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div>
                     <h1>Pizzarias</h1>
                     <span>Gerencie todas as pizzarias do sistema</span>
@@ -33,10 +40,19 @@
                 {% for pizzaria in pizzarias %}
                 <div class="card">
                     <div class="card-header">
-                        <h3>{{ pizzaria.nome }}</h3>
-                        <span class="slug">{{ pizzaria.slug }}</span>
-                        <div class="status-badge {{ pizzaria.status or 'ativo' }}">
-                            {{ "Ativo" if (pizzaria.status or 'ativo') == 'ativo' else "Desativado" }}
+                        <div class="pizzaria-logo">
+                            {% if pizzaria.logotipo %}
+                            <img src="{{ pizzaria.logotipo }}" alt="{{ pizzaria.nome }}">
+                            {% else %}
+                            <span>🍕</span>
+                            {% endif %}
+                        </div>
+                        <div class="pizzaria-info">
+                            <h3>{{ pizzaria.nome }}</h3>
+                            <span class="slug">{{ pizzaria.slug }}</span>
+                            <div class="status-badge {{ pizzaria.status or 'ativo' }}">
+                                {{ "Ativo" if (pizzaria.status or 'ativo') == 'ativo' else "Desativado" }}
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -63,6 +79,11 @@
                             data-pizzaria-id="{{ pizzaria.id }}" data-pizzaria-status="{{ pizzaria.status or 'ativo' }}"
                             onclick="handleToggleStatus(this)">
                             {{ "Desativar" if (pizzaria.status or 'ativo') == 'ativo' else "Ativar" }}
+                        </button>
+                        <button class="btn-config-access" data-pizzaria-id="{{ pizzaria.id }}"
+                            data-pizzaria-nome="{{ pizzaria.nome }}" data-pizzaria-email="{{ pizzaria.email or '' }}"
+                            onclick="handleConfigAccess(this)">
+                            📧 Acesso
                         </button>
                         <button class="btn-delete" onclick="removePizzaria('{{ pizzaria.id }}')">
                             Excluir
@@ -119,6 +140,26 @@
             }
 
             toggleStatus(id, status);
+        }
+
+        function handleConfigAccess(button) {
+            console.log("=== DEBUG FRONTEND CONFIG ACCESS: Botão clicado");
+            console.log("=== DEBUG FRONTEND CONFIG ACCESS: Elemento button:", button);
+            console.log("=== DEBUG FRONTEND CONFIG ACCESS: Dataset:", button.dataset);
+
+            const id = button.dataset.pizzariaId;
+            const nome = button.dataset.pizzariaNome;
+            const email = button.dataset.pizzariaEmail;
+
+            console.log("=== DEBUG FRONTEND CONFIG ACCESS: Dados extraídos:", { id, nome, email });
+
+            if (!id || !nome) {
+                console.error("=== ERRO: Dados faltando no data-attributes");
+                alert("Erro: Dados incompletos para configurar acesso");
+                return;
+            }
+
+            configAccess(id, nome, email);
         }
 
         async function duplicarPizzaria(id, nome, slug) {
@@ -217,6 +258,270 @@
                 alert("Erro ao alterar status da pizzaria");
             }
         }
+
+        async function configAccess(id, nome, emailAtual) {
+            console.log("=== DEBUG CONFIG ACCESS: Abrindo wizard para:", { id, nome, emailAtual });
+
+            // Preencher dados no wizard
+            document.getElementById('wizardPizzariaId').value = id;
+            document.getElementById('wizardPizzariaNome').textContent = nome;
+            document.getElementById('wizardEmail').value = emailAtual || '';
+            document.getElementById('wizardSenha').value = '';
+            document.getElementById('wizardConfirmarSenha').value = '';
+
+            // Mostrar wizard
+            document.getElementById('configAccessWizard').style.display = 'flex';
+        }
+
+        function fecharWizardAcesso() {
+            document.getElementById('configAccessWizard').style.display = 'none';
+        }
+
+        async function salvarAcessoWizard() {
+            const id = document.getElementById('wizardPizzariaId').value;
+            const nome = document.getElementById('wizardPizzariaNome').textContent;
+            const email = document.getElementById('wizardEmail').value.trim();
+            const senha = document.getElementById('wizardSenha').value;
+            const confirmarSenha = document.getElementById('wizardConfirmarSenha').value;
+
+            if (!email) {
+                alert('Por favor, informe um email válido.');
+                return;
+            }
+            if (!senha) {
+                alert('Por favor, informe uma senha.');
+                return;
+            }
+            if (senha !== confirmarSenha) {
+                alert('As senhas não coincidem!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/api/pizzarias/${id}/configurar-acesso`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert("Acesso configurado com sucesso!\n\n" +
+                        `Email: ${email}\n` +
+                        `URL de acesso: /pizzaria/login`);
+                    fecharWizardAcesso();
+                    window.location.reload();
+                } else {
+                    alert("Erro ao configurar acesso: " + (result.message || "Erro desconhecido"));
+                }
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Erro ao configurar acesso");
+            }
+        }
+    </script>
+
+    <!-- Wizard Configurar Acesso -->
+    <div id="configAccessWizard" class="wizard-modal" style="display: none;">
+        <div class="wizard-content">
+            <div class="wizard-header">
+                <h3>🔐 Configurar Acesso</h3>
+                <button onclick="fecharWizardAcesso()" class="btn-close">&times;</button>
+            </div>
+            <div class="wizard-body">
+                <input type="hidden" id="wizardPizzariaId">
+                <div class="form-group">
+                    <label>Pizzaria</label>
+                    <div id="wizardPizzariaNome" class="info-text"></div>
+                </div>
+                <div class="form-group">
+                    <label>Email de Acesso *</label>
+                    <input type="email" id="wizardEmail" placeholder="exemplo@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Senha *</label>
+                    <input type="password" id="wizardSenha" placeholder="Mínimo 6 caracteres" required>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Senha *</label>
+                    <input type="password" id="wizardConfirmarSenha" placeholder="Repita a senha" required>
+                </div>
+            </div>
+            <div class="wizard-actions">
+                <button onclick="fecharWizardAcesso()" class="btn-secondary">Cancelar</button>
+                <button onclick="salvarAcessoWizard()" class="btn-primary">Salvar Acesso</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .pizzaria-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .pizzaria-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .pizzaria-logo span {
+            font-size: 28px;
+        }
+
+        .pizzaria-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pizzaria-info h3 {
+            margin: 0 0 4px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .pizzaria-info .slug {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .card-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .wizard-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .wizard-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .wizard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .wizard-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .wizard-body {
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a202c;
+        }
+
+        .info-text {
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .wizard-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.getElementById('mobileMenuBtn');
+
+            if (!sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+                sidebar.classList.rem'open');
+            }
+        });
     </script>
 </body>
 

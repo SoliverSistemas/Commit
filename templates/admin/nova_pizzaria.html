@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>Nova Pizzaria</title>
@@ -7,18 +8,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/nova_pizzaria.css') }}">
 </head>
+
 <body>
     <div class="layout">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <h2>Painel</h2>
             <nav>
                 <a href="/admin">Pizzarias</a>
+                <a href="/admin/categorias-globais">Categorias Globais</a>
+                <a href="/admin/paletas">Paletas</a>
                 <a href="/admin/pizzaria/nova" class="active">Nova Pizzaria</a>
                 <a href="/admin/logout">Sair</a>
             </nav>
         </aside>
         <main class="main">
             <div class="header">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div>
                     <h1>Nova Pizzaria</h1>
                     <span>Crie uma nova pizzaria no sistema</span>
@@ -97,6 +106,21 @@
             if (!res.ok) return alert("Erro ao criar pizzaria");
             window.location.href = "/admin";
         });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            if (!sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
     </script>
 </body>
+
 </html>

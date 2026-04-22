@@ -139,8 +139,18 @@ body {
 
 /* Actions */
 .card-actions {
-    display: flex;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.card-actions button,
+.card-actions a {
+    font-size: 12px;
+    padding: 8px 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-edit {
@@ -250,13 +260,64 @@ body {
     padding-right: 80px;
 }
 
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    gap: 4px;
+}
+
+.mobile-menu-btn span {
+    width: 24px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: 0.3s;
+}
+
 /* Responsivo */
 @media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+    }
+
     .sidebar {
-        display: none;
+        position: fixed;
+        left: -220px;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.open {
+        left: 0;
     }
 
     .main {
         padding: 20px;
+    }
+
+    .header {
+        gap: 15px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .btn-primary {
+        padding: 8px 14px;
+        font-size: 13px;
     }
 }

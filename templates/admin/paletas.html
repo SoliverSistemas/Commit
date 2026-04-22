@@ -1,0 +1,765 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Paletas de Cores{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="page-header">
+        <h1>Paletas de Cores</h1>
+        <p>Crie e gerencie paletas de cores pré-definidas para as pizzarias</p>
+    </div>
+
+    {% if erro %}
+    <div class="alert alert-danger">
+        <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Criar Nova Paleta</h3>
+                </div>
+                <div class="card-body">
+                    <form id="formPaleta">
+                        <div class="form-group">
+                            <label for="nomePaleta">Nome da Paleta *</label>
+                            <input type="text" class="form-control" id="nomePaleta" required
+                                placeholder="Ex: Vermelho Clássico">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Cores da Paleta</label>
+                            <div class="color-inputs">
+                                <div class="color-input-group">
+                                    <label for="cor_primaria">Cor Primária</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_primaria" value="#E81C1C">
+                                        <input type="text" class="color-text" id="cor_primaria_text" value="#E81C1C">
+                                    </div>
+                                </div>
+
+                                <div class="color-input-group">
+                                    <label for="cor_secundaria">Cor Secundária</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_secundaria" value="#0D0D0D">
+                                        <input type="text" class="color-text" id="cor_secundaria_text" value="#0D0D0D">
+                                    </div>
+                                </div>
+
+                                <div class="color-input-group">
+                                    <label for="cor_fundo">Cor de Fundo</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_fundo" value="#FFFFFF">
+                                        <input type="text" class="color-text" id="cor_fundo_text" value="#FFFFFF">
+                                    </div>
+                                </div>
+
+                                <div class="color-input-group">
+                                    <label for="cor_texto">Cor do Texto</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_texto" value="#000000">
+                                        <input type="text" class="color-text" id="cor_texto_text" value="#000000">
+                                    </div>
+                                </div>
+
+                                <div class="color-input-group">
+                                    <label for="cor_texto_secundario">Cor do Texto Secundário</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_texto_secundario"
+                                            value="#666666">
+                                        <input type="text" class="color-text" id="cor_texto_secundario_text"
+                                            value="#666666">
+                                    </div>
+                                </div>
+
+                                <div class="color-input-group">
+                                    <label for="cor_texto_escuro">Cor do Texto Escuro</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" class="color-input" id="cor_texto_escuro" value="#1f2937">
+                                        <input type="text" class="color-text" id="cor_texto_escuro_text"
+                                            value="#1f2937">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="button" class="btn btn-secondary" onclick="previewPaleta()">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="gerarPaletaAleatoria()">
+                                <i class="fas fa-dice"></i> Gerar Aleatória
+                            </button>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Paleta
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Preview</h3>
+                </div>
+                <div class="card-body">
+                    <div id="previewContainer" class="preview-container">
+                        <div class="preview-header">
+                            <h4>Sua Pizzaria</h4>
+                            <p>Veja como ficará a aparência</p>
+                        </div>
+                        <div class="preview-content">
+                            <div class="preview-product">
+                                <h5>Pizza Tradicional</h5>
+                                <p>Deliciosa pizza com ingredientes selecionados</p>
+                                <div class="preview-price">R$ 35,90</div>
+                                <button class="preview-btn">Adicionar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Paletas Salvas</h3>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="carregarPaletas()">
+                    <i class="fas fa-sync"></i> Atualizar
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="paletas-grid" id="paletasGrid">
+                <!-- Paletas serão carregadas aqui via JavaScript -->
+                <div class="text-center text-muted">
+                    <i class="fas fa-palette fa-3x mb-3"></i>
+                    <p>Carregando paletas...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Paleta -->
+<div class="modal" id="modalEditar">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Editar Paleta</h4>
+            <button class="modal-close" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="formEditar">
+                <input type="hidden" id="edit_id">
+                <div class="form-group">
+                    <label for="edit_nomePaleta">Nome da Paleta *</label>
+                    <input type="text" class="form-control" id="edit_nomePaleta" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Cores da Paleta</label>
+                    <div class="color-inputs">
+                        <div class="color-input-group">
+                            <label for="edit_cor_primaria">Cor Primária</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_primaria">
+                                <input type="text" class="color-text" id="edit_cor_primaria_text">
+                            </div>
+                        </div>
+
+                        <div class="color-input-group">
+                            <label for="edit_cor_secundaria">Cor Secundária</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_secundaria">
+                                <input type="text" class="color-text" id="edit_cor_secundaria_text">
+                            </div>
+                        </div>
+
+                        <div class="color-input-group">
+                            <label for="edit_cor_fundo">Cor de Fundo</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_fundo">
+                                <input type="text" class="color-text" id="edit_cor_fundo_text">
+                            </div>
+                        </div>
+
+                        <div class="color-input-group">
+                            <label for="edit_cor_texto">Cor do Texto</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_texto">
+                                <input type="text" class="color-text" id="edit_cor_texto_text">
+                            </div>
+                        </div>
+
+                        <div class="color-input-group">
+                            <label for="edit_cor_texto_secundario">Cor do Texto Secundário</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_texto_secundario">
+                                <input type="text" class="color-text" id="edit_cor_texto_secundario_text">
+                            </div>
+                        </div>
+
+                        <div class="color-input-group">
+                            <label for="edit_cor_texto_escuro">Cor do Texto Escuro</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" class="color-input" id="edit_cor_texto_escuro">
+                                <input type="text" class="color-text" id="edit_cor_texto_escuro_text">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarEdicao()">Salvar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let paletas = [];
+
+    // Carregar paletas na inicialização
+    document.addEventListener('DOMContentLoaded', function () {
+        carregarPaletas();
+        setupColorInputs();
+    });
+
+    // Configurar inputs de cor
+    function setupColorInputs() {
+        const colorInputs = document.querySelectorAll('.color-input');
+        const textInputs = document.querySelectorAll('.color-text');
+
+        colorInputs.forEach((input, index) => {
+            input.addEventListener('input', function () {
+                textInputs[index].value = this.value;
+                atualizarPreview();
+            });
+        });
+
+        textInputs.forEach((input, index) => {
+            input.addEventListener('input', function () {
+                if (/^#[0-9A-F]{6}$/i.test(this.value)) {
+                    colorInputs[index].value = this.value;
+                    atualizarPreview();
+                }
+            });
+        });
+    }
+
+    // Renderizar paletas
+    function renderizarPaletas() {
+        const grid = document.getElementById('paletasGrid');
+
+        if (paletas.length === 0) {
+            grid.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-palette fa-3x mb-3"></i>
+                <p>Nenhuma paleta cadastrada ainda.</p>
+            </div>
+        `;
+            return;
+        }
+
+        grid.innerHTML = paletas.map(paleta => `
+        <div class="paleta-card">
+            <div class="paleta-cores">
+                <div class="cor-item" style="background-color: ${paleta.cor_fundo_principal}" title="Cor Primária"></div>
+                <div class="cor-item" style="background-color: ${paleta.cor_fundo_secundario}" title="Cor Secundária"></div>
+                <div class="cor-item" style="background-color: ${paleta.cor_surface}" title="Cor de Fundo"></div>
+                <div class="cor-item" style="background-color: ${paleta.cor_texto}" title="Cor do Texto"></div>
+                <div class="cor-item" style="background-color: ${paleta.cor_texto_secundario}" title="Cor do Texto Secundário"></div>
+                <div class="cor-item" style="background-color: ${paleta.cor_titulos}" title="Cor do Texto Escuro"></div>
+            </div>
+            <div class="paleta-info">
+                <h5>${paleta.nome}</h5>
+                <div class="paleta-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="editarPaleta('${paleta.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirPaleta('${paleta.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    }
+
+    // Atualizar preview
+    function atualizarPreview() {
+        const cores = {
+            cor_primaria: document.getElementById('cor_primaria').value,
+            cor_secundaria: document.getElementById('cor_secundaria').value,
+            cor_fundo: document.getElementById('cor_fundo').value,
+            cor_texto: document.getElementById('cor_texto').value,
+            cor_texto_secundario: document.getElementById('cor_texto_secundario').value,
+            cor_texto_escuro: document.getElementById('cor_texto_escuro').value
+        };
+
+        const container = document.getElementById('previewContainer');
+        container.style.backgroundColor = cores.cor_fundo;
+        container.style.color = cores.cor_texto;
+
+        const header = container.querySelector('.preview-header');
+        header.style.color = cores.cor_primaria;
+
+        const product = container.querySelector('.preview-product');
+        product.style.border = `2px solid ${cores.cor_secundaria}`;
+        product.style.backgroundColor = cores.cor_fundo;
+
+        const price = container.querySelector('.preview-price');
+        price.style.color = cores.cor_primaria;
+
+        const btn = container.querySelector('.preview-btn');
+        btn.style.backgroundColor = cores.cor_primaria;
+        btn.style.color = cores.cor_fundo;
+    }
+
+    // Preview via API
+    async function previewPaleta() {
+        const cores = {
+            cor_primaria: document.getElementById('cor_primaria').value,
+            cor_secundaria: document.getElementById('cor_secundaria').value,
+            cor_fundo: document.getElementById('cor_fundo').value,
+            cor_texto: document.getElementById('cor_texto').value,
+            cor_texto_secundario: document.getElementById('cor_texto_secundario').value,
+            cor_texto_escuro: document.getElementById('cor_texto_escuro').value
+        };
+
+        try {
+            const response = await fetch('/admin/api/paletas/preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(cores)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                mostrarAlerta('Preview gerado com sucesso!', 'success');
+            } else {
+                mostrarAlerta('Erro: ' + data.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarAlerta('Erro ao gerar preview', 'danger');
+        }
+    }
+
+    // Gerar paleta aleatória
+    function gerarPaletaAleatoria() {
+        const coresAleatorias = [
+            '#E81C1C', '#27AE60', '#3498DB', '#9B59B6', '#F39C12',
+            '#E74C3C', '#16A085', '#2980B9', '#8E44AD', '#D68910'
+        ];
+
+        document.getElementById('cor_primaria').value = coresAleatorias[Math.floor(Math.random() * coresAleatorias.length)];
+        document.getElementById('cor_secundaria').value = coresAleatorias[Math.floor(Math.random() * coresAleatorias.length)];
+        document.getElementById('cor_fundo').value = '#FFFFFF';
+        document.getElementById('cor_texto').value = '#000000';
+        document.getElementById('cor_texto_secundario').value = '#666666';
+        document.getElementById('cor_texto_escuro').value = '#1f2937';
+
+        // Atualizar campos de texto
+        document.querySelectorAll('.color-input').forEach((input, index) => {
+            document.querySelectorAll('.color-text')[index].value = input.value;
+        });
+
+        atualizarPreview();
+        mostrarAlerta('Paleta aleatória gerada!', 'info');
+    }
+
+    // Submit do formulário
+    document.getElementById('formPaleta').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const paleta = {
+            nome: document.getElementById('nomePaleta').value,
+            cor_primaria: document.getElementById('cor_primaria').value,
+            cor_secundaria: document.getElementById('cor_secundaria').value,
+            cor_fundo: document.getElementById('cor_fundo').value,
+            cor_texto: document.getElementById('cor_texto').value,
+            cor_texto_secundario: document.getElementById('cor_texto_secundario').value,
+            cor_texto_escuro: document.getElementById('cor_texto_escuro').value
+        };
+
+        try {
+            const response = await fetch('/admin/api/paletas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paleta)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                mostrarAlerta('Paleta criada com sucesso!', 'success');
+                document.getElementById('formPaleta').reset();
+                carregarPaletas();
+            } else {
+                mostrarAlerta('Erro: ' + data.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarAlerta('Erro ao criar paleta', 'danger');
+        }
+    });
+
+    // Editar paleta
+    function editarPaleta(id) {
+        const paleta = paletas.find(p => p.id === id);
+        if (!paleta) return;
+
+        document.getElementById('edit_id').value = paleta.id;
+        document.getElementById('edit_nomePaleta').value = paleta.nome;
+
+        // Preencher cores com estrutura do banco
+        document.getElementById('edit_cor_primaria').value = paleta.cor_fundo_principal || paleta.cor_primaria;
+        document.getElementById('edit_cor_primaria_text').value = paleta.cor_fundo_principal || paleta.cor_primaria;
+        document.getElementById('edit_cor_secundaria').value = paleta.cor_fundo_secundario || paleta.cor_secundaria;
+        document.getElementById('edit_cor_secundaria_text').value = paleta.cor_fundo_secundario || paleta.cor_secundaria;
+        document.getElementById('edit_cor_fundo').value = paleta.cor_surface || paleta.cor_fundo;
+        document.getElementById('edit_cor_fundo_text').value = paleta.cor_surface || paleta.cor_fundo;
+        document.getElementById('edit_cor_texto').value = paleta.cor_texto;
+        document.getElementById('edit_cor_texto_text').value = paleta.cor_texto;
+        document.getElementById('edit_cor_texto_secundario').value = paleta.cor_texto_secundario;
+        document.getElementById('edit_cor_texto_secundario_text').value = paleta.cor_texto_secundario;
+        document.getElementById('edit_cor_texto_escuro').value = paleta.cor_titulos || paleta.cor_texto_escuro;
+        document.getElementById('edit_cor_texto_escuro_text').value = paleta.cor_titulos || paleta.cor_texto_escuro;
+
+        document.getElementById('modalEditar').style.display = 'flex';
+    }
+
+    // Salvar edição
+    async function salvarEdicao() {
+        const id = document.getElementById('edit_id').value;
+
+        const paleta = {
+            nome: document.getElementById('edit_nomePaleta').value,
+            cor_primaria: document.getElementById('edit_cor_primaria').value,
+            cor_secundaria: document.getElementById('edit_cor_secundaria').value,
+            cor_fundo: document.getElementById('edit_cor_fundo').value,
+            cor_texto: document.getElementById('edit_cor_texto').value,
+            cor_texto_secundario: document.getElementById('edit_cor_texto_secundario').value,
+            cor_texto_escuro: document.getElementById('edit_cor_texto_escuro').value
+        };
+
+        try {
+            const response = await fetch(`/admin/api/paletas/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paleta)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                mostrarAlerta('Paleta atualizada com sucesso!', 'success');
+                fecharModal();
+                carregarPaletas();
+            } else {
+                mostrarAlerta('Erro: ' + data.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarAlerta('Erro ao atualizar paleta', 'danger');
+        }
+    }
+
+    // Excluir paleta
+    async function excluirPaleta(id) {
+        if (!confirm('Tem certeza que deseja excluir esta paleta?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/api/paletas/${id}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok') {
+                mostrarAlerta('Paleta excluída com sucesso!', 'success');
+                carregarPaletas();
+            } else {
+                mostrarAlerta('Erro: ' + data.message, 'danger');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            mostrarAlerta('Erro ao excluir paleta', 'danger');
+        }
+    }
+
+    // Fechar modal
+    function fecharModal() {
+        document.getElementById('modalEditar').style.display = 'none';
+    }
+
+    // Mostrar alerta
+    function mostrarAlerta(mensagem, tipo) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${tipo} alert-dismissible`;
+        alertDiv.innerHTML = `
+        ${mensagem}
+        <button type="button" class="close" onclick="this.parentElement.remove()">
+            <span>&times;</span>
+        </button>
+    `;
+
+        const container = document.querySelector('.admin-page');
+        container.insertBefore(alertDiv, container.firstChild);
+
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .color-inputs {
+        display: grid;
+        gap: 15px;
+    }
+
+    .color-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .color-input-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .color-input {
+        width: 50px;
+        height: 40px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .color-text {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .preview-container {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        min-height: 200px;
+        transition: all 0.3s ease;
+    }
+
+    .preview-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .preview-header h4 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .preview-header p {
+        margin: 5px 0 0 0;
+        opacity: 0.8;
+    }
+
+    .preview-content {
+        display: flex;
+        justify-content: center;
+    }
+
+    .preview-product {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        max-width: 200px;
+        transition: all 0.3s ease;
+    }
+
+    .preview-product h5 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+    }
+
+    .preview-product p {
+        margin: 0 0 15px 0;
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .preview-price {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 0 0 15px 0;
+    }
+
+    .preview-btn {
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .preview-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .paletas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .paleta-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .paleta-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .paleta-cores {
+        display: flex;
+        height: 60px;
+    }
+
+    .cor-item {
+        flex: 1;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .cor-item:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+    .paleta-info {
+        padding: 15px;
+    }
+
+    .paleta-info h5 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+    }
+
+    .paleta-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .paleta-actions .btn {
+        flex: 1;
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h4 {
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #999;
+    }
+
+    .modal-close:hover {
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 20px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+</style>
+{% endblock %}

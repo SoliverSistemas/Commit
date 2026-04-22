@@ -1,30 +1,41 @@
-const appData = window.__APP_DATA__;
-const productsById = new Map(appData.produtos.map((p) => [p.id, p]));
-const storageKey = `commit_cart_${appData.pizzaria.slug}`;
+const appData = window.__APP_DATA__ || { pizzaria: {}, produtos: [] };
+console.log('[MAIN.JS] appData completo:', appData);
+console.log('[MAIN.JS] appData.pizzaria keys:', Object.keys(appData.pizzaria).filter(k => k.includes('cor')));
+console.log('[MAIN.JS] cor_texto_escuro:', appData.pizzaria.cor_texto_escuro);
+console.log('[MAIN.JS] appData.produtos:', appData.produtos);
+console.log('[MAIN.JS] appData.produtos.length:', appData.produtos ? appData.produtos.length : 0);
+const productsById = new Map((appData.produtos || []).map((p) => [p.id, p]));
+console.log('[MAIN.JS] productsById criado:', productsById);
+console.log('[MAIN.JS] productsById.size:', productsById.size);
+const storageKey = appData.pizzaria ? `commit_cart_${appData.pizzaria.slug}` : 'commit_cart';
+
+// Função para gerar UUID compatível com todos os navegadores
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
 // Define CSS variables dinamicamente baseado nos dados da pizzaria
 function setDynamicColors() {
     const p = appData.pizzaria;
     const root = document.documentElement;
-    root.style.setProperty('--bg-main', p.cor_fundo_principal || '#0b0f1a');
-    root.style.setProperty('--bg-secondary', p.cor_fundo_secundario || '#111827');
-    root.style.setProperty('--title-color', p.cor_titulos || '#f9fafb');
-    root.style.setProperty('--text-color', p.cor_texto || '#e5e7eb');
-    root.style.setProperty('--text-soft', p.cor_texto_secundario || '#94a3b8');
-    root.style.setProperty('--surface-1', p.cor_surface || '#ffffff');
-    root.style.setProperty('--stroke', 'rgba(148,163,184,0.2)');
-    root.style.setProperty('--btn-primary-bg', p.botao_primario_bg || '#ef4444');
-    root.style.setProperty('--btn-primary-color', p.botao_primario_texto || '#ffffff');
-    root.style.setProperty('--btn-primary-hover', p.botao_primario_hover || '#dc2626');
-    root.style.setProperty('--btn-secondary-bg', p.botao_secundario_bg || '#1f2937');
-    root.style.setProperty('--btn-secondary-color', p.botao_secundario_texto || '#ffffff');
-    root.style.setProperty('--btn-secondary-hover', p.botao_secundario_hover || '#111827');
-    root.style.setProperty('--btn-highlight-bg', p.botao_destaque_bg || '#f59e0b');
-    root.style.setProperty('--btn-highlight-color', p.botao_destaque_texto || '#111827');
-    root.style.setProperty('--btn-highlight-hover', p.botao_destaque_hover || '#d97706');
-    root.style.setProperty('--btn-neutral-bg', p.botao_neutro_bg || '#e5e7eb');
-    root.style.setProperty('--btn-neutral-color', p.botao_neutro_texto || '#111827');
-    root.style.setProperty('--btn-neutral-hover', p.botao_neutro_hover || '#cbd5e1');
+    // Usar as mesmas variáveis que o style_dark.css usa
+    root.style.setProperty('--cor_primaria', p.botao_primario_bg || '#E81C1C');
+    root.style.setProperty('--cor_primaria-deep', p.botao_primario_hover || '#B01010');
+    root.style.setProperty('--cor_fundo_principal', p.cor_fundo_principal || '#0D0D0D');
+    root.style.setProperty('--cor_fundo_secundario', p.cor_fundo_secundario || '#161616');
+    root.style.setProperty('--cor_fundo', p.cor_surface || '#FFFFFF');
+    root.style.setProperty('--cor_texto', p.cor_texto || '#000000');
+    root.style.setProperty('--cor_texto_secundario', p.cor_texto_secundario || '#666666');
+    root.style.setProperty('--cor_titulos', p.cor_titulos || '#f9fafb');
+    console.log('[CORES] Cores aplicadas:', {
+        cor_primaria: p.botao_primario_bg,
+        cor_fundo_principal: p.cor_fundo_principal,
+        cor_fundo: p.cor_surface
+    });
 }
 setDynamicColors();
 
@@ -61,9 +72,6 @@ function renderCuponsDisplay() {
 document.addEventListener('DOMContentLoaded', renderCuponsDisplay);
 renderCuponsDisplay();
 
-// Chave para rastrear cliques nos produtos (para sugerir pedidos)
-const productClicksKey = `commit_product_clicks_${appData.pizzaria.slug}`;
-
 let cart = JSON.parse(localStorage.getItem(storageKey) || "[]");
 let currentProduct = null;
 let currentSelection = {};
@@ -78,9 +86,6 @@ let isLookingUpCep = false;
 let cepLookupDebounce = null;
 let addressWasAutofilled = false;
 
-// Histórico de pedidos (localStorage) para "Sugerir Pedido" e "Repetir Pedido"
-const orderHistoryKey = `commit_order_history_${appData.pizzaria.slug}`;
-
 function safeParseJson(value, fallback) {
     try {
         return JSON.parse(value);
@@ -93,191 +98,7 @@ function deepClone(value) {
     return JSON.parse(JSON.stringify(value));
 }
 
-// Funções para rastrear cliques nos produtos
-function loadProductClicks() {
-    const raw = localStorage.getItem(productClicksKey);
-    const fallback = {};
-    if (!raw) return fallback;
-    const parsed = safeParseJson(raw, fallback);
-    if (!parsed || typeof parsed !== "object") return fallback;
-    return parsed;
-}
 
-function persistProductClicks(clicks) {
-    localStorage.setItem(productClicksKey, JSON.stringify(clicks));
-}
-
-function trackProductClick(productId) {
-    const clicks = loadProductClicks();
-    const now = Date.now();
-    if (!clicks[productId]) {
-        clicks[productId] = { count: 0, lastClick: 0 };
-    }
-    clicks[productId].count += 1;
-    clicks[productId].lastClick = now;
-    persistProductClicks(clicks);
-}
-
-function getMostClickedProducts(limit = 5) {
-    const clicks = loadProductClicks();
-    const products = Object.entries(clicks)
-        .map(([productId, data]) => ({
-            productId,
-            count: data.count,
-            lastClick: data.lastClick,
-            product: productsById.get(productId)
-        }))
-        .filter(p => p.product)
-        .sort((a, b) => b.count - a.count || b.lastClick - a.lastClick);
-    return products.slice(0, limit);
-}
-
-function suggestOrderFromClicks() {
-    const mostClicked = getMostClickedProducts(3);
-    if (mostClicked.length === 0) return null;
-
-    // Sugere o produto mais clicado
-    const topProduct = mostClicked[0];
-    const product = topProduct.product;
-
-    // Cria um template de item baseado no produto mais clicado
-    const itemsTemplate = [{
-        productId: product.id,
-        nome: product.nome,
-        quantidade: 1,
-        selection: {},
-        observacoes: "",
-        total: Number(product.preco_base || 0)
-    }];
-
-    return {
-        signature: `click_${product.id}`,
-        itemsTemplate,
-        productName: product.nome,
-        clickCount: topProduct.count
-    };
-}
-
-function buildCartSignature(cartItems) {
-    // Assinatura estável por item/seleções/observacoes/quantidade.
-    // Usamos apenas ids das opções para manter consistente.
-    const normalized = (cartItems || [])
-        .map((item) => {
-            const selection = item.selection || {};
-            const secaoIds = Object.keys(selection).sort();
-            const normalizedSelection = secaoIds.map((secaoId) => {
-                const picked = (selection[secaoId] || [])
-                    .map((opt) => String(opt.id || opt))
-                    .sort();
-                return { secaoId: String(secaoId), picked };
-            });
-            return {
-                productId: String(item.productId || item.id || ""),
-                quantity: Number(item.quantidade || 1),
-                observacoes: String(item.observacoes || "").trim(),
-                selection: normalizedSelection
-            };
-        })
-        .sort((a, b) => {
-            if (a.productId !== b.productId) return a.productId.localeCompare(b.productId);
-            return a.quantity - b.quantity;
-        });
-    return JSON.stringify(normalized);
-}
-
-function normalizeItemsTemplateFromCart(cartItems) {
-    // Removemos `id` e atributos transitórios para re-quantizar depois.
-    return (cartItems || []).map((item) => ({
-        productId: item.productId,
-        nome: item.nome,
-        quantidade: Number(item.quantidade || 1),
-        selection: deepClone(item.selection || {}),
-        observacoes: item.observacoes || "",
-        total: Number(item.total || 0)
-    }));
-}
-
-function loadOrderHistory() {
-    const raw = localStorage.getItem(orderHistoryKey);
-    const fallback = { lastSignature: null, stats: {} };
-    if (!raw) return fallback;
-    const parsed = safeParseJson(raw, fallback);
-    if (!parsed || typeof parsed !== "object") return fallback;
-    if (!parsed.stats) parsed.stats = {};
-    return parsed;
-}
-
-function persistOrderHistory(history) {
-    localStorage.setItem(orderHistoryKey, JSON.stringify(history));
-}
-
-function restoreCartFromItemsTemplate(itemsTemplate) {
-    cart = (itemsTemplate || []).map((item) => ({
-        id: crypto.randomUUID(),
-        productId: item.productId,
-        nome: item.nome,
-        quantidade: Number(item.quantidade || 1),
-        selection: deepClone(item.selection || {}),
-        observacoes: item.observacoes || "",
-        total: Number(item.total || 0)
-    }));
-    persistCart();
-    deliveryResult = null;
-    const hint = document.getElementById("freteHint");
-    if (hint) hint.textContent = "Informe CEP e endereco para calcular o frete automaticamente.";
-    renderCart();
-}
-
-function suggestBestOrderFromHistory() {
-    // Primeiro tenta sugerir baseado no histórico de pedidos completados
-    const history = loadOrderHistory();
-    const entries = Object.entries(history.stats || {});
-
-    let bestFromHistory = null;
-    if (entries.length > 0) {
-        for (const [signature, stat] of entries) {
-            const count = Number(stat.count || 0);
-            const totalSum = Number(stat.totalSum || 0);
-            const bestTotal = Number(stat.bestTotal || 0);
-            if (!count || !stat.itemsTemplate) continue;
-
-            const avg = totalSum / count;
-            const score = count * (avg || bestTotal || 0);
-
-            if (!bestFromHistory || score > bestFromHistory.score || (score === bestFromHistory.score && stat.lastAt > bestFromHistory.lastAt)) {
-                bestFromHistory = { signature, itemsTemplate: stat.itemsTemplate, score, lastAt: Number(stat.lastAt || 0), source: 'history' };
-            }
-        }
-    }
-
-    // Tenta sugerir baseado nos cliques nos produtos
-    const bestFromClicks = suggestOrderFromClicks();
-
-    // Se tem histórico de pedidos, usa ele; senão usa cliques
-    if (bestFromHistory) {
-        return bestFromHistory;
-    }
-
-    if (bestFromClicks) {
-        return {
-            signature: bestFromClicks.signature,
-            itemsTemplate: bestFromClicks.itemsTemplate,
-            score: bestFromClicks.clickCount,
-            lastAt: Date.now(),
-            source: 'clicks',
-            productName: bestFromClicks.productName
-        };
-    }
-
-    return null;
-}
-
-function repeatLastOrderFromHistory() {
-    const history = loadOrderHistory();
-    const sig = history.lastSignature;
-    if (!sig || !history.stats || !history.stats[sig] || !history.stats[sig].itemsTemplate) return null;
-    return history.stats[sig].itemsTemplate;
-}
 
 function formatCurrency(value) {
     return `R$ ${Number(value || 0).toFixed(2).replace(".", ",")}`;
@@ -383,11 +204,20 @@ function getSelectionTotal(product, selection) {
 }
 
 function openProductModal(productId) {
-    const product = productsById.get(productId);
-    if (!product) return;
+    console.log('[DEBUG] openProductModal chamado com productId:', productId);
+    console.log('[DEBUG] productsById:', productsById);
+    console.log('[DEBUG] productsById.size:', productsById.size);
 
-    // Rastrear clique no produto
-    trackProductClick(productId);
+    const product = productsById.get(productId);
+    console.log('[DEBUG] product encontrado:', product);
+
+    if (!product) {
+        console.error('[DEBUG] Produto não encontrado para ID:', productId);
+        return;
+    }
+
+    console.log('Produto aberto:', product);
+    console.log('Seções do produto:', product.secoes);
 
     currentProduct = product;
     currentSelection = {};
@@ -395,10 +225,22 @@ function openProductModal(productId) {
     currentStepIndex = 0;
 
     const repeatButton = document.getElementById("repeatButton");
-    repeatButton.style.display = lastSelectionByProduct[productId] ? "inline-block" : "none";
+    if (repeatButton) {
+        repeatButton.style.display = lastSelectionByProduct[productId] ? "inline-block" : "none";
+    }
 
+    console.log('[DEBUG] Chamando renderWizardStep()');
     renderWizardStep();
-    document.getElementById("productModal").classList.remove("hidden");
+    console.log('[DEBUG] renderWizardStep() concluído');
+
+    const modal = document.getElementById("productModal");
+    console.log('[DEBUG] modal element:', modal);
+    if (modal) {
+        modal.style.display = "flex";
+        console.log('[DEBUG] modal.style.display definido para flex');
+    } else {
+        console.error('[DEBUG] Modal não encontrado no DOM');
+    }
 }
 
 function renderWizardStep() {
@@ -476,24 +318,30 @@ function renderWizardStep() {
     });
     body.appendChild(group);
 
-    const obs = document.createElement("textarea");
-    obs.placeholder = "Observacoes deste item";
-    obs.value = currentObs;
-    obs.addEventListener("input", (event) => (currentObs = event.target.value || ""));
-    body.appendChild(obs);
-
     const partialTotal = getSelectionTotal(currentProduct, currentSelection);
     const summary = document.createElement("div");
     summary.className = "option-group";
     summary.innerHTML = `<h4>Resumo parcial</h4><p>Subtotal do item: <strong>${formatCurrency(partialTotal)}</strong></p>`;
     body.appendChild(summary);
 
+    // Adicionar campo de observações apenas no último passo
+    if (currentStepIndex === sections.length - 1) {
+        const obs = document.createElement("textarea");
+        obs.placeholder = "Observacoes deste item";
+        obs.value = currentObs;
+        obs.addEventListener("input", (event) => (currentObs = event.target.value || ""));
+        body.appendChild(obs);
+    }
+
     const primaryButton = document.getElementById("wizardPrimaryButton");
     primaryButton.textContent = currentStepIndex === sections.length - 1 ? "Confirmar" : "Proxima Etapa";
 }
 
 function closeProductModal() {
-    document.getElementById("productModal").classList.add("hidden");
+    const modal = document.getElementById("productModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
     currentProduct = null;
     currentSelection = {};
     currentObs = "";
@@ -547,7 +395,7 @@ function addConfiguredItem() {
     }
     const total = getSelectionTotal(currentProduct, currentSelection);
     const item = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         productId: currentProduct.id,
         nome: currentProduct.nome,
         quantidade: 1,
@@ -615,24 +463,52 @@ async function calculateDeliveryByAddress() {
     const hint = document.getElementById("freteHint");
     hint.textContent = "Calculando frete...";
     try {
+        // Obter endereço completo
+        const endereco = document.getElementById("customerAddress")?.value?.trim() || "";
+
+        // Usar nova API que suporta CEP e endereço com Geoapify
         const response = await fetch(`/api/frete/calcular/${appData.pizzaria.slug}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cep })
+            body: JSON.stringify({
+                cep: cep || "",
+                endereco: endereco
+            })
         });
         const data = await response.json();
         if (!response.ok || data.status === "erro") {
             deliveryResult = null;
             if (response.status === 422) {
-                hint.textContent = "Fora da área de entrega. Verifique se o CEP está correto ou entre em contato com a pizzaria.";
+                hint.textContent = "Fora da área de entrega. Verifique se o CEP/endereço estão corretos ou entre em contato com a pizzaria.";
             } else {
-                hint.textContent = data.erro || "Nao foi possivel calcular frete para este CEP.";
+                hint.textContent = data.erro || "Não foi possível calcular frete para este endereço.";
             }
             renderCart();
             return;
         }
-        deliveryResult = { frete: Number(data.frete || 0), distanciaKm: Number(data.distancia_km || 0) };
-        hint.textContent = `Frete calculado: ${formatCurrency(deliveryResult.frete)} | Distancia aprox.: ${deliveryResult.distanciaKm.toFixed(2)} km`;
+
+        // Salvar dados completos do frete
+        deliveryResult = {
+            frete: Number(data.frete || 0),
+            distanciaKm: Number(data.distancia_km || 0),
+            faixaAplicada: data.faixa_aplicada || "",
+            enderecoEncontrado: data.endereco_encontrado || "",
+            apiUsadaGeocode: data.api_usada_geocode || "",
+            apiUsadaDistance: data.api_usada_distance || ""
+        };
+
+        // Montar mensagem de frete com informações detalhadas
+        let freteMessage = `Frete: ${formatCurrency(deliveryResult.frete)} | Distância: ${deliveryResult.distanciaKm.toFixed(2)} km`;
+
+        if (deliveryResult.faixaAplicada) {
+            freteMessage += ` | Faixa: ${deliveryResult.faixaAplicada}`;
+        }
+
+        if (data.aviso) {
+            freteMessage += ` | ${data.aviso}`;
+        }
+
+        hint.textContent = freteMessage;
         renderCart();
     } catch (_) {
         deliveryResult = null;
@@ -652,173 +528,103 @@ function scheduleDeliveryCalculation() {
 }
 
 function renderCart() {
-    const floating = document.getElementById("floatingCart");
-    const count = cart.reduce((sum, item) => sum + Number(item.quantidade || 1), 0);
-    const subtotal = cart.reduce((sum, item) => sum + Number(item.total || 0) * Number(item.quantidade || 1), 0);
+    const cartItems = document.getElementById('cartItems');
+    const cartCount = document.getElementById('headerCartCount');
+    const cartItemCount = document.getElementById('cartItemCount');
+    const cartSubtotal = document.getElementById('cartSubtotal');
+    const cartTotal = document.getElementById('cartTotal');
 
-    // Update floating cart
-    if (floating) {
-        document.getElementById("floatingCount").textContent = `${count} items`;
-        document.getElementById("floatingTotal").textContent = formatCurrency(subtotal);
-        floating.classList.toggle("hidden", count === 0);
+    // Mobile elements
+    const floatingCartBar = document.getElementById('floatingCartBar');
+    const floatingCartItems = document.getElementById('floatingCartItems');
+    const floatingCartTotal = document.getElementById('floatingCartTotal');
+
+    if (!cartItems) return;
+
+    if (cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="cart-empty">
+                <div class="cart-empty-icon">🛒</div>
+                <p>Carrinho vazio<br>Adicione itens para começar</p>
+            </div>
+        `;
+        const total = 0;
+        const itemCount = 0;
+
+        // Update desktop
+        if (cartCount) cartCount.textContent = '0';
+        if (cartItemCount) cartItemCount.textContent = '0 itens';
+        if (cartSubtotal) cartSubtotal.textContent = 'R$ 0,00';
+        if (cartTotal) cartTotal.textContent = 'R$ 0,00';
+
+        // Update mobile
+        if (floatingCartItems) floatingCartItems.textContent = '0 itens';
+        if (floatingCartTotal) floatingCartTotal.textContent = 'R$ 0,00';
+        if (floatingCartBar) floatingCartBar.style.display = 'none';
+
+        return;
     }
 
-    // Update desktop sidebar
-    const sidebarCount = document.getElementById("cartItemCount");
-    const sidebarSubtotal = document.getElementById("cartSubtotal");
-    const sidebarTotal = document.getElementById("cartTotal");
-    if (sidebarCount) sidebarCount.textContent = `${count} items`;
-    if (sidebarSubtotal) sidebarSubtotal.textContent = formatCurrency(subtotal);
+    let html = '<div class="cart-items-list">';
+    let total = 0;
+    let itemCount = 0;
 
-    // Calculate total with or without delivery
-    const discount = calculateDiscount(subtotal);
-    const frete = deliveryResult ? deliveryResult.frete : 0;
-    const finalTotal = Math.max(0, subtotal + frete - discount);
+    cart.forEach(item => {
+        const itemTotal = item.total * item.quantidade;
+        total += itemTotal;
+        itemCount += item.quantidade;
 
-    if (sidebarTotal) sidebarTotal.textContent = formatCurrency(finalTotal);
-
-    // Update Sidebar Cart (desktop) - com controles de quantidade
-    const sidebarItems = document.getElementById("cartItems");
-    if (sidebarItems) {
-        if (cart.length === 0) {
-            sidebarItems.innerHTML = '<div class="cart-empty">Carrinho vazio</div>';
-        } else {
-            sidebarItems.innerHTML = cart.map((item) => {
-                const product = productsById.get(item.productId) || null;
-                const img = product && product.imagem_url ? product.imagem_url : "";
-                const qty = Number(item.quantidade || 1);
-
-                return `
-                    <div class="cart-item" data-id="${item.id}">
-                        <div class="cart-item-image">
-                            ${img ? `<img src="${img}" alt="${item.nome}">` : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface-2);font-size:1.5rem;">🍕</div>'}
-                        </div>
-                        <div class="cart-item-details" style="flex:1;min-width:0;">
-                            <div class="cart-item-name">${item.nome}</div>
-                            <div class="cart-item-price">${formatCurrency(item.total)} cada</div>
-                            <div class="cart-item-controls">
-                                <button class="cart-item-qty-btn" onclick="decreaseItemQty('${item.id}')">−</button>
-                                <span class="cart-item-qty-display">${qty}</span>
-                                <button class="cart-item-qty-btn" onclick="increaseItemQty('${item.id}')">+</button>
-                                <button class="cart-item-remove" onclick="removeCartItem('${item.id}')">🗑️</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        if (sidebarCount) sidebarCount.textContent = `${count} items`;
-        if (sidebarSubtotal) sidebarSubtotal.textContent = formatCurrency(subtotal);
-        if (sidebarTotal) sidebarTotal.textContent = formatCurrency(finalTotal);
-    }
-
-    // Update Drawer Cart (mobile)
-    const drawerItems = document.getElementById("cartDrawerItems");
-    if (drawerItems) {
-        drawerItems.innerHTML = "";
-        cart.forEach((item) => {
-            const div = document.createElement("div");
-            div.className = "cart-item";
-
-            const product = productsById.get(item.productId) || null;
-            const img = product && product.imagem_url ? product.imagem_url : "";
-            const details = Object.values(item.selection || {})
-                .flat()
-                .map((x) => x.nome)
-                .join(", ");
-            const qty = Number(item.quantidade || 1);
-
-            div.innerHTML = `
-                <div class="cart-item-media">
-                    ${img ? `<img class="cart-item-thumb" loading="lazy" src="${img}" alt="${item.nome}">` : ""}
-                </div>
-                <div class="cart-item-body">
-                    <div class="cart-item-title">${item.nome}</div>
-                    <div class="cart-item-desc">${details || "Sem opcoes"}${item.observacoes ? ` | ${item.observacoes}` : ""}</div>
-                    <div class="cart-item-price-line">
-                        ${qty}x ${formatCurrency(item.total)} = <strong>${formatCurrency(item.total * qty)}</strong>
+        html += `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.nome}</div>
+                    <div class="cart-item-details">
+                        ${item.quantidade > 1 ? `<span>Qtd: ${item.quantidade}</span>` : ''}
+                        ${item.observacoes ? `<span>Obs: ${item.observacoes}</span>` : ''}
                     </div>
                 </div>
+                <div class="cart-item-price">${formatCurrency(itemTotal)}</div>
+                <button class="cart-item-remove" onclick="removeCartItem('${item.id}')">✕</button>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    cartItems.innerHTML = html;
+
+    // Update desktop
+    if (cartCount) cartCount.textContent = itemCount.toString();
+    if (cartItemCount) cartItemCount.textContent = `${itemCount} itens`;
+    if (cartSubtotal) cartSubtotal.textContent = formatCurrency(total);
+
+    // Calculate discount
+    const discount = calculateDiscount(total);
+    const finalTotal = total - discount;
+
+    if (cartTotal) {
+        if (discount > 0) {
+            cartTotal.innerHTML = `
+                <div style="text-decoration: line-through; color: #888; font-size: 0.875rem;">${formatCurrency(total)}</div>
+                <div style="color: #4ade80; font-weight: bold;">${formatCurrency(finalTotal)}</div>
             `;
-
-            const qtyWrap = document.createElement("div");
-            qtyWrap.className = "cart-item-qty";
-
-            const minusBtn = document.createElement("button");
-            minusBtn.className = "cart-qty-btn";
-            minusBtn.textContent = "-";
-            minusBtn.onclick = () => decreaseItemQty(item.id);
-
-            const plusBtn = document.createElement("button");
-            plusBtn.className = "cart-qty-btn";
-            plusBtn.textContent = "+";
-            plusBtn.onclick = () => increaseItemQty(item.id);
-
-            const qtyCount = document.createElement("div");
-            qtyCount.className = "cart-qty-count";
-            qtyCount.textContent = String(qty);
-
-            qtyWrap.appendChild(minusBtn);
-            qtyWrap.appendChild(qtyCount);
-            qtyWrap.appendChild(plusBtn);
-
-            const removeBtn = document.createElement("button");
-            removeBtn.className = "cart-remove-btn btn-neutral";
-            removeBtn.textContent = "Remover";
-            removeBtn.onclick = () => removeCartItem(item.id);
-
-            const bottomRow = document.createElement("div");
-            bottomRow.className = "cart-item-bottom";
-            bottomRow.appendChild(qtyWrap);
-            bottomRow.appendChild(removeBtn);
-
-            const bodyEl = div.querySelector(".cart-item-body");
-            if (bodyEl) bodyEl.appendChild(bottomRow);
-            else div.appendChild(bottomRow);
-
-            drawerItems.appendChild(div);
-        });
-    }
-
-    const subtotalEl = document.getElementById("subtotalValue");
-    const deliveryEl = document.getElementById("deliveryValue");
-    const totalEl = document.getElementById("totalValue");
-    const discountRow = document.getElementById("discountRow");
-    const discountDisplay = document.getElementById("discountDisplay");
-    const couponDiscountDiv = document.getElementById("couponDiscount");
-    const discountValueEl = document.getElementById("discountValue");
-
-    if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
-    if (deliveryEl) deliveryEl.textContent = frete === 0 ? "Calcular frete" : formatCurrency(frete);
-    if (totalEl) totalEl.textContent = formatCurrency(finalTotal);
-
-    // Show/hide discount row
-    if (discountRow) {
-        discountRow.classList.toggle("hidden", discount <= 0);
-        if (discountDisplay && discount > 0) {
-            discountDisplay.textContent = `- ${formatCurrency(discount)}`;
+        } else {
+            cartTotal.textContent = formatCurrency(total);
         }
     }
 
-    // Update coupon discount display
-    if (couponDiscountDiv) {
-        couponDiscountDiv.classList.toggle("hidden", discount <= 0);
-        if (discountValueEl && discount > 0) {
-            discountValueEl.textContent = `- ${formatCurrency(discount)}`;
+    // Update mobile - show bar when has items
+    if (floatingCartItems) floatingCartItems.textContent = `${itemCount} itens`;
+    if (floatingCartTotal) {
+        if (discount > 0) {
+            floatingCartTotal.innerHTML = `
+                <span style="text-decoration: line-through; color: #888; font-size: 0.75rem;">${formatCurrency(total)}</span>
+                <span style="color: #4ade80; font-weight: bold;">${formatCurrency(finalTotal)}</span>
+            `;
+        } else {
+            floatingCartTotal.textContent = formatCurrency(total);
         }
     }
-}
-
-function toggleCartDrawer(open) {
-    document.getElementById("cartDrawer").classList.toggle("hidden", !open);
-}
-
-function toggleCartSidebar(open) {
-    const sidebar = document.getElementById("cartSidebar");
-    if (sidebar) {
-        sidebar.classList.toggle("hidden", !open);
-    }
+    if (floatingCartBar) floatingCartBar.style.display = 'flex';
 }
 
 function clearCart(skipConfirm = false) {
@@ -1127,8 +933,9 @@ function applyProductSearch(term) {
     }
 
     cards.forEach((card) => {
-        const source = card.dataset.searchText || "";
-        const visible = !normalized || source.includes(normalized);
+        // Buscar apenas no nome do produto
+        const productName = card.querySelector('.pizza-card-name')?.textContent?.toLowerCase() || "";
+        const visible = !normalized || productName.includes(normalized);
         card.classList.toggle("hidden", !visible);
         if (visible) visibleCards += 1;
     });
@@ -1221,44 +1028,6 @@ if (clearSearchBtn && productSearchEl) {
     });
 }
 
-// Sugerir pedido e repetir pedido (baseado em histórico local e cliques)
-const suggestOrderBtn = document.getElementById("suggestOrderBtn");
-const repeatOrderBtn = document.getElementById("repeatOrderBtn");
-
-function updateSuggestButtonState() {
-    if (!suggestOrderBtn) return;
-    const history = loadOrderHistory();
-    const hasHistory = Object.keys(history.stats || {}).length > 0;
-    const hasClicks = Object.keys(loadProductClicks()).length > 0;
-    suggestOrderBtn.disabled = !hasHistory && !hasClicks;
-}
-
-function updateRepeatButtonState() {
-    if (!repeatOrderBtn) return;
-    const history = loadOrderHistory();
-    const hasLastOrder = history.lastSignature && history.stats?.[history.lastSignature]?.itemsTemplate;
-    repeatOrderBtn.disabled = !hasLastOrder;
-}
-
-if (repeatOrderBtn) {
-    updateRepeatButtonState();
-    repeatOrderBtn.addEventListener("click", () => {
-        const items = repeatLastOrderFromHistory();
-        if (!items) {
-            showAlert('Sem pedido anterior para repetir. Faça um pedido primeiro!', 'info', 'Informação');
-            return;
-        }
-        restoreCartFromItemsTemplate(items);
-        toggleCartDrawer(true);
-    });
-}
-
-if (suggestOrderBtn) {
-    updateSuggestButtonState();
-    suggestOrderBtn.addEventListener("click", () => {
-        showSuggestModal();
-    });
-}
 
 window.openProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
@@ -1269,12 +1038,39 @@ window.repeatLastConfig = repeatLastConfig;
 window.checkoutWhatsapp = checkoutWhatsapp;
 window.clearCart = clearCart;
 window.cancelProductFlow = closeProductModal;
-window.toggleStoreInfo = (open) => document.getElementById("storeInfoModal").classList.toggle("hidden", !open);
+
+// Função para toggle da barra de informações
+window.toggleInfoBar = function () {
+    const infoBar = document.getElementById("infoBar");
+    const arrow = document.getElementById("infoToggleArrow");
+
+    if (infoBar.style.display === "none" || infoBar.style.display === "") {
+        infoBar.style.display = "flex";
+        // Adiciona classe show para animação
+        setTimeout(() => infoBar.classList.add("show"), 10);
+        arrow.textContent = "▲";
+    } else {
+        infoBar.classList.remove("show");
+        // Espera animação terminar antes de esconder
+        setTimeout(() => {
+            infoBar.style.display = "none";
+        }, 300);
+        arrow.textContent = "▼";
+    }
+};
 window.calculateDeliveryByAddress = calculateDeliveryByAddress;
 window.removeCartItem = removeCartItem;
 window.increaseItemQty = increaseItemQty;
 window.decreaseItemQty = decreaseItemQty;
-window.repeatLastOrderFromHistory = repeatLastOrderFromHistory;
+
+// Toggle mobile submenu
+function toggleMobileSubmenu(categoriaId) {
+    const submenu = document.getElementById(`mobile-submenu-${categoriaId}`);
+    if (submenu) {
+        const isVisible = submenu.style.display !== 'none';
+        submenu.style.display = isVisible ? 'none' : 'block';
+    }
+}
 
 // Funções para o dropdown de categorias
 window.toggleCategories = function () {
@@ -1296,17 +1092,19 @@ const categoriesNav = document.querySelector('.categories-nav');
 const categoriesSticky = document.getElementById('categoriesSticky');
 
 if (categoriesNav && categoriesSticky) {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (!entry.isIntersecting) {
-                categoriesSticky.classList.add('visible');
-            } else {
-                categoriesSticky.classList.remove('visible');
-            }
-        });
-    }, { threshold: 0 });
+    // Simples: mostrar dropdown sticky quando rolar para baixo
+    let lastScrollTop = 0;
+    window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    observer.observe(categoriesNav);
+        if (scrollTop > 200) { // Mostrar depois de rolar 200px
+            categoriesSticky.classList.add('visible');
+        } else {
+            categoriesSticky.classList.remove('visible');
+        }
+
+        lastScrollTop = scrollTop;
+    });
 }
 
 // Fechar dropdown quando clicar fora
@@ -1324,7 +1122,6 @@ document.addEventListener("keydown", (event) => {
     window.toggleStoreInfo(false);
     const dropdown = document.getElementById("categoriesDropdown");
     if (dropdown) dropdown.classList.remove("open");
-    closeSuggestModal();
 });
 
 // ============================================
@@ -1344,21 +1141,26 @@ function calculateDiscount(subtotal) {
 function applyCoupon() {
     const codeInput = document.getElementById("couponCode");
     const code = codeInput?.value?.trim().toUpperCase();
+    const couponMessage = document.getElementById("couponMessage");
 
     if (!code) {
-        showAlert('Digite um código de cupom', 'warning', 'Atenção');
+        if (couponMessage) {
+            couponMessage.innerHTML = '<span style="color: #ef4444;">❌ Digite um código de cupom</span>';
+        }
         return;
     }
 
     // Check if coupon exists in pizzaria coupons (from admin) - case insensitive
     const coupons = appData.pizzaria.cupons || [];
-    console.log('Procurando cupom:', code, 'em', coupons);
     const coupon = coupons.find(c => c.codigo && c.codigo.toUpperCase() === code);
 
     if (!coupon || coupon.valor <= 0) {
-        showAlert('Cupom inválido ou expirado', 'error', 'Erro');
         currentCoupon = null;
+        if (couponMessage) {
+            couponMessage.innerHTML = '<span style="color: #ef4444;">❌ Cupom inválido ou expirado</span>';
+        }
         renderCart();
+        renderCartDrawerItems();
         return;
     }
 
@@ -1369,344 +1171,22 @@ function applyCoupon() {
     };
 
     renderCart();
+    renderCartDrawerItems();
 
     const discount = calculateDiscount(cart.reduce((sum, item) => sum + Number(item.total || 0) * Number(item.quantidade || 1), 0));
     const discountDisplay = currentCoupon.tipo === 'percent'
         ? `${currentCoupon.valor}%`
         : `R$ ${currentCoupon.valor.toFixed(2)}`;
-    showAlert(`Cupom ${code} aplicado! Desconto: ${discountDisplay}`, 'success', 'Cupom Aplicado');
+
+    if (couponMessage) {
+        couponMessage.innerHTML = `<span style="color: #4ade80;">✅ Cupom ${code} aplicado! Desconto: ${discountDisplay}</span>`;
+    }
 }
 
 window.applyCoupon = applyCoupon;
 
-// ============================================
-// IMPROVED SUGGEST ORDER MODAL
-// ============================================
-let currentSuggestion = null;
 
-function closeSuggestModal() {
-    document.getElementById("suggestOrderModal")?.classList.add("hidden");
-}
 
-function refreshSuggestion() {
-    // Clear current suggestion to force regeneration with different options
-    currentSuggestion = null;
-
-    // Force regeneration by calling showSuggestModal
-    showSuggestModal();
-
-    // Add a small delay to ensure UI updates
-    setTimeout(() => {
-        const modal = document.getElementById("suggestOrderModal");
-        if (modal && !modal.classList.contains("hidden")) {
-            // If modal is still open, try to regenerate with different seed
-            showSuggestModal();
-        }
-    }, 100);
-}
-
-function addSuggestedToCart() {
-    if (!currentSuggestion) return;
-
-    // Add the item to cart with its pre-selected options
-    const item = {
-        productId: currentSuggestion.product.id,
-        nome: currentSuggestion.product.nome,
-        quantidade: 1,
-        selection: currentSuggestion.selection,
-        observacoes: "",
-        total: currentSuggestion.total
-    };
-
-    cart.push(item);
-    persistCart();
-    renderCart();
-    closeSuggestModal();
-    // Não abrir o carrinho automaticamente
-}
-
-function showSuggestModal() {
-    const best = suggestBestOrderFromHistory();
-
-    // Se não há histórico, pegar um produto aleatório
-    if (!best) {
-        const allProducts = Array.from(productsById.values());
-        if (allProducts.length === 0) {
-            showAlert('Nenhum produto disponível para sugestão!', 'info', 'Informação');
-            return;
-        }
-
-        // Escolher produto aleatório
-        const randomProduct = allProducts[Math.floor(Math.random() * allProducts.length)];
-
-        // Build the suggestion with one option per section
-        const selection = {};
-        let total = Number(randomProduct.preco_base || 0);
-        const sections = randomProduct.secoes || [];
-
-        console.log("Sugerindo produto aleatório:", randomProduct.nome, "com seções:", sections);
-
-        // For each section, pick a random option with better randomness
-        sections.forEach(secao => {
-            const opcoes = secao.opcoes || [];
-            if (opcoes.length > 0) {
-                // Use multiple random factors for better randomness
-                const randomSeed = Date.now() + Math.random() * 1000;
-                const randomIndex = Math.floor((randomSeed % 1) * opcoes.length);
-                const randomOption = opcoes[randomIndex];
-                selection[secao.id] = [randomOption];
-                total += Number(randomOption.preco_adicional || 0);
-                console.log(`Seção ${secao.nome}: escolhida opção ${randomOption.nome}`);
-            }
-        });
-
-        currentSuggestion = { product: randomProduct, selection, total };
-
-        // Render modal content
-        const modal = document.getElementById("suggestOrderModal");
-        const productDiv = document.getElementById("suggestedProduct");
-        const optionsDiv = document.getElementById("suggestedOptions");
-
-        productDiv.innerHTML = `
-            <div class="suggested-product">
-                <h4>${randomProduct.nome}</h4>
-                <p>Total: ${formatCurrency(total)}</p>
-            </div>
-        `;
-
-        optionsDiv.innerHTML = sections.map(secao => {
-            const selectedOptions = selection[secao.id];
-            if (!selectedOptions || !Array.isArray(selectedOptions) || selectedOptions.length === 0) return '';
-
-            const option = selectedOptions[0]; // Get the first (and only) option
-            if (!option) return '';
-
-            return `
-                <div class="suggested-option-group">
-                    <h5>${secao.nome}</h5>
-                    <p>${option.nome}${option.preco_adicional > 0 ? ` (+${formatCurrency(option.preco_adicional)})` : ''}</p>
-                </div>
-            `;
-        }).join('');
-
-        modal.classList.remove("hidden");
-        return;
-    }
-
-    // Código original para quando há histórico
-    const item = best.itemsTemplate[0];
-    const product = productsById.get(item.productId);
-    if (!product) {
-        console.error("Produto não encontrado:", item.productId);
-        return;
-    }
-
-    console.log("Sugerindo produto:", product.nome, "com seções:", product.secoes);
-
-    // Build the suggestion with one option per section
-    const selection = {};
-    let total = Number(product.preco_base || 0);
-    const sections = product.secoes || [];
-
-    // For each section, pick a random option with better randomness
-    sections.forEach(secao => {
-        const opcoes = secao.opcoes || [];
-        if (opcoes.length > 0) {
-            // Use multiple random factors for better randomness
-            const randomSeed = Date.now() + Math.random() * 1000;
-            const randomIndex = Math.floor((randomSeed % 1) * opcoes.length);
-            const randomOption = opcoes[randomIndex];
-            selection[secao.id] = [randomOption];
-            total += Number(randomOption.preco_adicional || 0);
-            console.log(`Seção ${secao.nome}: escolhida opção ${randomOption.nome}`);
-        }
-    });
-
-    currentSuggestion = { product, selection, total };
-
-    // Render modal content
-    const modal = document.getElementById("suggestOrderModal");
-    const productDiv = document.getElementById("suggestedProduct");
-    const optionsDiv = document.getElementById("suggestedOptions");
-
-    productDiv.innerHTML = `
-        <div class="suggested-product">
-            <h4>${product.nome}</h4>
-            <p>Total: ${formatCurrency(total)}</p>
-        </div>
-    `;
-
-    optionsDiv.innerHTML = sections.map(secao => {
-        const selectedOptions = selection[secao.id];
-        if (!selectedOptions || !Array.isArray(selectedOptions) || selectedOptions.length === 0) return '';
-
-        const option = selectedOptions[0]; // Get the first (and only) option
-        if (!option) return '';
-
-        return `
-            <div class="suggested-option-group">
-                <h5>${secao.nome}</h5>
-                <p>${option.nome}${option.preco_adicional > 0 ? ` (+${formatCurrency(option.preco_adicional)})` : ''}</p>
-            </div>
-        `;
-    }).join('');
-
-    modal.classList.remove("hidden");
-}
-
-// Funções do Modal de Sugestão
-function openSugestaoModal() {
-    const modal = document.getElementById('sugestaoModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        loadSugestaoCategorias();
-    }
-}
-
-function closeSugestaoModal() {
-    const modal = document.getElementById('sugestaoModal');
-    if (modal) {
-        modal.classList.add('hidden');
-        // Resetar estado
-        document.getElementById('sugestaoCategorias').classList.remove('hidden');
-        document.getElementById('sugestaoResult').classList.add('hidden');
-    }
-}
-
-async function loadSugestaoCategorias() {
-    try {
-        const response = await fetch(`/api/sugestao-config/${window.__APP_DATA__.pizzaria.slug}`);
-        const data = await response.json();
-
-        const container = document.getElementById('sugestaoCategorias');
-        container.innerHTML = '';
-
-        if (data.success && data.data.length > 0) {
-            data.data.forEach(config => {
-                const button = document.createElement('button');
-                button.className = 'sugestao-categoria-btn';
-                button.innerHTML = `
-                    <span class="sugestao-categoria-icon">${config.categorias.icone || '🍕'}</span>
-                    <span>${config.categorias.nome}</span>
-                `;
-                button.onclick = () => gerarSugestao(config.categoria_id);
-                container.appendChild(button);
-            });
-        } else {
-            container.innerHTML = '<p style="text-align: center; color: #94a3b8;">Nenhuma categoria configurada para sugestões</p>';
-        }
-    } catch (error) {
-        console.error('Erro ao carregar categorias de sugestão:', error);
-        document.getElementById('sugestaoCategorias').innerHTML = '<p style="text-align: center; color: #ef4444;">Erro ao carregar sugestões</p>';
-    }
-}
-
-async function gerarSugestao(categoriaId) {
-    try {
-        console.log("Gerando sugestão para categoria:", categoriaId); // Debug
-
-        const response = await fetch(`/api/sugestao-combo/${window.__APP_DATA__.pizzaria.slug}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ categoria_id: categoriaId })
-        });
-
-        console.log("Response status:", response.status); // Debug
-        const data = await response.json();
-        console.log("Response data:", data); // Debug
-
-        if (data.success) {
-            mostrarSugestaoResult(data.data);
-        } else {
-            console.error("Erro na API:", data); // Debug
-            showNotification('Erro', data.message || 'Não foi possível gerar sugestão', 'error');
-        }
-    } catch (error) {
-        console.error('Erro ao gerar sugestão:', error);
-        showNotification('Erro', 'Não foi possível gerar sugestão', 'error');
-    }
-}
-
-function mostrarSugestaoResult(data) {
-    const categoriasContainer = document.getElementById('sugestaoCategorias');
-    const resultContainer = document.getElementById('sugestaoResult');
-    const mensagemEl = resultContainer.querySelector('.sugestao-mensagem');
-    const produtosEl = document.getElementById('sugestaoProdutos');
-
-    // Esconder categorias e mostrar resultado
-    categoriasContainer.classList.add('hidden');
-    resultContainer.classList.remove('hidden');
-
-    // Mostrar mensagem
-    mensagemEl.textContent = data.mensagem || 'Sugestões para você:';
-
-    // Mostrar produtos
-    produtosEl.innerHTML = '';
-    data.produtos.forEach(produto => {
-        const item = document.createElement('div');
-        item.className = 'sugestao-produto-item';
-        item.innerHTML = `
-            <div class="sugestao-produto-info">
-                <div class="sugestao-produto-nome">${produto.nome}</div>
-                <div class="sugestao-produto-preco">R$ ${Number(produto.preco_base).toFixed(2)}</div>
-            </div>
-            <div class="sugestao-produto-actions">
-                <button class="btn-primary" onclick="openProductModal('${produto.id}')">Ver Detalhes</button>
-                <button class="btn-secondary" onclick="adicionarProdutoAoCarrinho('${produto.id}')">Adicionar</button>
-            </div>
-        `;
-        produtosEl.appendChild(item);
-    });
-
-    // Configurar botão "Sugerir Novamente"
-    document.getElementById('sugestaoNovamenteBtn').onclick = () => {
-        resultContainer.classList.add('hidden');
-        categoriasContainer.classList.remove('hidden');
-    };
-}
-
-function adicionarProdutoAoCarrinho(produtoId) {
-    const produto = productsById.get(produtoId);
-    if (!produto) return;
-
-    // Adicionar produto com opções padrão
-    const selection = {};
-    let total = Number(produto.preco_base || 0);
-
-    // Para cada seção, escolher a primeira opção
-    (produto.secoes || []).forEach(secao => {
-        const opcoes = secao.opcoes || [];
-        if (opcoes.length > 0) {
-            const firstOption = opcoes[0];
-            selection[secao.id] = [firstOption];
-            total += Number(firstOption.preco_adicional || 0);
-        }
-    });
-
-    const item = {
-        productId: produto.id,
-        nome: produto.nome,
-        quantidade: 1,
-        selection: selection,
-        observacoes: "",
-        total: total
-    };
-
-    cart.push(item);
-    persistCart();
-    renderCart();
-    showNotification('Sucesso', `${produto.nome} adicionado ao carrinho!`, 'success');
-}
-
-// Event listener para o botão flutuante
-document.addEventListener('DOMContentLoaded', () => {
-    const sugestaoBtn = document.getElementById('sugestaoPedidoBtn');
-    if (sugestaoBtn) {
-        sugestaoBtn.addEventListener('click', openSugestaoModal);
-    }
-});
 
 window.getCurrentLocation = function () {
     if (!navigator.geolocation) {
@@ -1748,11 +1228,179 @@ window.getCurrentLocation = function () {
     );
 };
 
-window.closeSuggestModal = closeSuggestModal;
-window.refreshSuggestion = refreshSuggestion;
-window.addSuggestedToCart = addSuggestedToCart;
-
-// Suggest button handler is already set up above
 
 renderCart();
 restoreCustomerData();
+
+// ============================================
+// FUNÇÕES ESSENCIAIS QUE FALTAVAM
+// ============================================
+
+function toggleCartSidebar(show) {
+    const cartSidebar = document.getElementById('cartSidebar');
+    if (!cartSidebar) return;
+
+    if (show) {
+        cartSidebar.style.display = 'block';
+    } else {
+        cartSidebar.style.display = 'none';
+    }
+}
+
+function scrollToCategory(categoryId) {
+    const element = document.getElementById(categoryId);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('productSearch');
+    if (searchInput) {
+        searchInput.value = '';
+        // Disparar evento de input para filtrar
+        searchInput.dispatchEvent(new Event('input'));
+    }
+}
+
+// Expor funções globalmente
+window.toggleCartSidebar = toggleCartSidebar;
+window.scrollToCategory = scrollToCategory;
+window.clearSearch = clearSearch;
+window.toggleCart = toggleCartSidebar;
+
+// ============================================
+// FUNÇÕES ADICIONAIS DO INDEX.HTML
+// ============================================
+
+function toggleStoreInfo() {
+    const modal = document.getElementById('storeInfoModal');
+    if (!modal) return;
+    const isOpen = modal.style.display === 'flex';
+    modal.style.display = isOpen ? 'none' : 'flex';
+}
+
+function toggleCartDrawer(show) {
+    const drawer = document.getElementById('cartDrawer');
+    if (!drawer) return;
+    if (show) {
+        drawer.style.display = 'flex';
+        renderCartDrawerItems();
+    } else {
+        drawer.style.display = 'none';
+    }
+}
+
+function renderCartDrawerItems() {
+    const itemsContainer = document.getElementById('cartDrawerItems');
+    const totalContainer = document.getElementById('cartDrawerTotal');
+
+    if (!itemsContainer || !totalContainer) return;
+
+    if (cart.length === 0) {
+        itemsContainer.innerHTML = '<p style="text-align: center; color: #888;">Carrinho vazio</p>';
+        totalContainer.innerHTML = '';
+        return;
+    }
+
+    // Lista de produtos (resumo) - acima do formulário
+    let itemsHtml = '<div class="cart-drawer-list" style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 15px;">';
+    let total = 0;
+    cart.forEach(item => {
+        total += item.total * item.quantidade;
+        itemsHtml += `
+            <div class="cart-drawer-item" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <div>
+                    <strong>${item.nome}</strong>
+                    <small style="display: block; color: #888;">Qtd: ${item.quantidade}</small>
+                </div>
+                <span>${formatCurrency(item.total * item.quantidade)}</span>
+            </div>
+        `;
+    });
+    itemsHtml += '</div>';
+    itemsContainer.innerHTML = itemsHtml;
+
+    // Valores (subtotal, desconto, total) - abaixo do formulário
+    let totalHtml = '<div class="cart-values" style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #333;">';
+
+    // Calcular desconto
+    const discount = calculateDiscount(total);
+    const finalTotal = total - discount;
+
+    totalHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Subtotal:</span><strong>${formatCurrency(total)}</strong></div>`;
+
+    if (discount > 0) {
+        const discountDisplay = currentCoupon.tipo === 'percent'
+            ? `${currentCoupon.valor}%`
+            : `R$ ${currentCoupon.valor.toFixed(2)}`;
+        totalHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #4ade80;"><span>Desconto (${discountDisplay}):</span><strong>-${formatCurrency(discount)}</strong></div>`;
+    }
+
+    totalHtml += `<div style="display: flex; justify-content: space-between; font-size: 1.3rem; margin-top: 10px; padding-top: 10px; border-top: 2px solid #E81C1C;"><span style="color: #E81C1C;">TOTAL:</span><strong style="color: #E81C1C;">${formatCurrency(finalTotal)}</strong></div>`;
+    totalHtml += '</div>';
+    totalContainer.innerHTML = totalHtml;
+}
+
+function submitOrder(event) {
+    event.preventDefault();
+    if (cart.length === 0) {
+        alert('Carrinho vazio!');
+        return;
+    }
+    const name = document.getElementById('customerName')?.value;
+    const phone = document.getElementById('customerPhone')?.value;
+    const address = document.getElementById('customerAddress')?.value;
+    const cep = document.getElementById('customerCep')?.value;
+    const notes = document.getElementById('customerNotes')?.value;
+    if (!name || !phone || !address) {
+        alert('Preencha todos os campos obrigatórios!');
+        return;
+    }
+    // Montar mensagem WhatsApp
+    let message = `*NOVO PEDIDO - ${appData.pizzaria.nome}*\n\n`;
+    message += `*Cliente:* ${name}\n`;
+    message += `*Telefone:* ${phone}\n`;
+    message += `*Endereço:* ${address}${cep ? ' (CEP: ' + cep + ')' : ''}\n\n`;
+    message += `*ITENS:*\n`;
+    let total = 0;
+    cart.forEach(item => {
+        total += item.total * item.quantidade;
+        message += `• ${item.nome} x${item.quantidade} = ${formatCurrency(item.total * item.quantidade)}\n`;
+    });
+    message += `\n*Total: ${formatCurrency(total)}*\n`;
+    if (notes) message += `\n*Observações:* ${notes}\n`;
+    // Abrir WhatsApp
+    const whatsapp = appData.pizzaria.whatsapp.replace(/\D/g, '');
+    const url = `https://wa.me/55${whatsapp}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+    // Limpar carrinho
+    clearCart();
+    toggleCartDrawer(false);
+}
+
+function getCurrentLocation() {
+    if (!navigator.geolocation) {
+        alert('Geolocalização não suportada');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            alert('Localização obtida! Latitude: ' + position.coords.latitude.toFixed(4));
+        },
+        (error) => {
+            alert('Erro ao obter localização: ' + error.message);
+        }
+    );
+}
+
+function cancelProductFlow() {
+    closeProductModal();
+}
+
+// Expor funções adicionais
+window.toggleStoreInfo = toggleStoreInfo;
+window.toggleCartDrawer = toggleCartDrawer;
+window.submitOrder = submitOrder;
+window.getCurrentLocation = getCurrentLocation;
+window.cancelProductFlow = cancelProductFlow;

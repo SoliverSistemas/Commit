@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Painel{% endblock %} | {{ pizzaria.nome if pizzaria else 'Pizzaria' }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pizzaria/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pizzaria/simple.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+
+<body>
+    <div class="layout">
+        <!-- Sidebar Simplificado -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    {% if pizzaria.logotipo %}
+                    <img src="{{ pizzaria.logotipo }}" alt="{{ pizzaria.nome }}"
+                        style="max-width: 56px; max-height: 56px; width: auto; height: auto; object-fit: contain;">
+                    {% else %}
+                    <span style="font-size: 36px;">🍕</span>
+                    {% endif %}
+                    <span class="logo-text">{{ pizzaria.nome if pizzaria else 'Pizzaria' }}</span>
+                </div>
+                <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/pizzaria/dashboard"
+                    class="nav-item {% if request.path == '/pizzaria/dashboard' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Início</span>
+                </a>
+                <a href="/pizzaria/cardapio"
+                    class="nav-item {% if request.path == '/pizzaria/cardapio' %}active{% endif %}">
+                    <span class="nav-icon">🍕</span>
+                    <span class="nav-text">Produtos</span>
+                </a>
+                <a href="/pizzaria/categorias"
+                    class="nav-item {% if request.path == '/pizzaria/categorias' %}active{% endif %}">
+                    <span class="nav-icon">📂</span>
+                    <span class="nav-text">Categorias</span>
+                </a>
+                <a href="/pizzaria/cupons"
+                    class="nav-item {% if request.path == '/pizzaria/cupons' %}active{% endif %}">
+                    <span class="nav-icon">🎫</span>
+                    <span class="nav-text">Cupons</span>
+                </a>
+                <a href="/pizzaria/configuracoes"
+                    class="nav-item {% if request.path == '/pizzaria/configuracoes' %}active{% endif %}">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Configurações</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/{{ pizzaria.slug if pizzaria else '' }}" target="_blank" class="sidebar-btn view-site">
+                    <span class="btn-icon">👁️</span>
+                    <span class="btn-text">Ver Site</span>
+                </a>
+                <a href="/pizzaria/logout" class="sidebar-btn logout">
+                    <span class="btn-icon">🚪</span>
+                    <span class="btn-text">Sair</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Header Mobile -->
+            <header class="mobile-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <h1 class="page-title">{% block page_title %}Painel{% endblock %}</h1>
+            </header>
+
+            <!-- Conteúdo -->
+            <div class="content-wrapper">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Fechar sidebar ao clicar fora
+        document.addEventListener('click', function (event) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.menu-toggle');
+
+            if (sidebar && menuToggle) {
+                if (!sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

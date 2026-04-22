@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pizzaria.nome }} - Cardápio Online</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/client/cardapio.css') }}">
+    <style>
+        :root {
+            --client-primary: {
+                    {
+                    pizzaria.cor_primaria or '#E81C1C'
+                }
+            }
+
+            ;
+
+            --client-secondary: {
+                    {
+                    pizzaria.cor_secundaria or '#0D0D0D'
+                }
+            }
+
+            ;
+
+            --client-bg: {
+                    {
+                    pizzaria.cor_fundo or '#FFFFFF'
+                }
+            }
+
+            ;
+
+            --client-text: {
+                    {
+                    pizzaria.cor_texto or '#333333'
+                }
+            }
+
+            ;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="client-header">
+        <div class="client-header-top">
+            <div class="client-logo">
+                {% if pizzaria.logo %}
+                <img src="{{ pizzaria.logo }}" alt="{{ pizzaria.nome }}" class="client-logo-img">
+                {% else %}
+                <div class="client-logo-img"
+                    style="display: flex; align-items: center; justify-content: center; font-size: 24px;">🍕</div>
+                {% endif %}
+                <div class="client-logo-text">
+                    <h1>{{ pizzaria.nome }}</h1>
+                    <p><span class="status-dot"></span>Aberto agora</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="client-search">
+            <div class="search-box">
+                <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" placeholder="Buscar no cardápio..." id="searchInput">
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <nav class="client-categories">
+            <button class="category-chip active" data-cat="all">
+                <span class="category-icon">🍽️</span>Todos
+            </button>
+            {% for cat in categorias %}
+            <button class="category-chip" data-cat="{{ cat.id }}">
+                <span class="category-icon">{{ cat.icone or '📦' }}</span>{{ cat.nome }}
+            </button>
+            {% endfor %}
+        </nav>
+    </header>
+
+    <!-- Banner -->
+    {% if pizzaria.banner %}
+    <div class="client-banner">
+        <img src="{{ pizzaria.banner }}" alt="Banner">
+    </div>
+    {% endif %}
+
+    <!-- Products -->
+    <main class="products-container">
+        {% for cat in categorias %}
+        <h2 class="section-title" data-section="{{ cat.id }}">{{ cat.nome }}</h2>
+        <div class="products-grid-client" id="grid-{{ cat.id }}">
+            {% for produto in produtos %}
+            {% if produto.categoria_id == cat.id and produto.ativo %}
+            <div class="product-card-client" data-id="{{ produto.id }}" onclick="openProductModal({{ produto.id }})">
+                <div class="product-image-client">
+                    {% if produto.imagem %}
+                    <img src="{{ produto.imagem }}" alt="{{ produto.nome }}">
+                    {% else %}
+                    <div
+                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 48px;">
+                        🍕</div>
+                    {% endif %}
+                    {% if produto.destaque %}
+                    <span class="product-badge">Destaque</span>
+                    {% endif %}
+                </div>
+                <div class="product-info-client">
+                    <h3 class="product-name-client">{{ produto.nome }}</h3>
+                    <p class="product-desc-client">{{ produto.descricao }}</p>
+                    <div class="product-footer-client">
+                        <span class="product-price-client">R$ {{ '%.2f'|format(produto.preco) }}</span>
+                        <button class="btn-add-client" onclick="event.stopPropagation(); quickAdd({{ produto.id }})">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </main>
+
+    <!-- Floating Cart -->
+    <div class="cart-floating" id="cartFloating" style="display: none;">
+        <div class="cart-info">
+            <div class="cart-count">
+                <span class="cart-count-number" id="cartCount">0</span>
+                <span class="cart-count-label">itens</span>
+            </div>
+            <div>
+                <div class="cart-total">Total</div>
+                <div class="cart-total-value" id="cartTotal">R$ 0,00</div>
+            </div>
+        </div>
+        <button class="btn-checkout" onclick="openCart()">Ver Carrinho</button>
+    </div>
+
+    <!-- Product Modal -->
+    <div class="modal-overlay-client" id="productModalOverlay" onclick="closeProductModal()"></div>
+    <div class="modal-container-client" id="productModal">
+        <div class="modal-header-client">
+            <div class="modal-image-client"><img src="" alt="" id="modalImage"></div>
+            <button class="modal-close-client" onclick="closeProductModal()">×</button>
+        </div>
+        <div class="modal-body-client">
+            <h2 class="modal-title-client" id="modalTitle"></h2>
+            <p class="modal-desc-client" id="modalDesc"></p>
+            <div class="modal-section" id="modalOptions">
+                <h3 class="modal-section-title">Adicionais <span>Opcional</span></h3>
+            </div>
+            <div class="quantity-selector">
+                <button class="btn-quantity" onclick="changeQuantity(-1)">−</button>
+                <span class="quantity-value" id="quantityValue">1</span>
+                <button class="btn-quantity" onclick="changeQuantity(1)">+</button>
+            </div>
+        </div>
+        <div class="modal-footer-client">
+            <button class="btn-add-modal" onclick="addToCart()">Adicionar R$ <span id="modalPrice">0,00</span></button>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h2>Seu Pedido</h2>
+            <button class="btn-close-cart" onclick="closeCart()">×</button>
+        </div>
+        <div class="cart-items" id="cartItems"></div>
+        <div class="cart-footer">
+            <div class="cart-total-row"><span>Subtotal</span><span id="cartSubtotal">R$ 0,00</span></div>
+            <div class="cart-total-row total"><span>Total</span><span id="cartTotalFinal">R$ 0,00</span></div>
+            <button class="btn-checkout" style="width: 100%; margin-top: 16px;" onclick="checkout()">Finalizar no
+                WhatsApp</button>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let currentProduct = null;
+        let currentQuantity = 1;
+
+        function loadCart() {
+            const saved = localStorage.getItem('cart_{{ pizzaria.id }}');
+            if (saved) cart = JSON.parse(saved);
+            updateCartUI();
+        }
+
+        function saveCart() {
+            localStorage.setItem('cart_{{ pizzaria.id }}', JSON.stringify(cart));
+        }
+
+        function quickAdd(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            cart.push({ id: product.id, nome: product.nome, preco: product.preco, quantidade: 1, imagem: product.imagem, options: [] });
+            saveCart();
+            updateCartUI();
+        }
+
+        function openProductModal(productId) {
+            currentProduct = products.find(p => p.id === productId);
+            if (!currentProduct) return;
+            currentQuantity = 1;
+            document.getElementById('modalImage').src = currentProduct.imagem || '';
+            document.getElementById('modalTitle').textContent = currentProduct.nome;
+            document.getElementById('modalDesc').textContent = currentProduct.descricao || '';
+            document.getElementById('modalPrice').textContent = currentProduct.preco.toFixed(2).replace('.', ',');
+            document.getElementById('quantityValue').textContent = '1';
+            document.getElementById('productModalOverlay').classList.add('active');
+            document.getElementById('productModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModalOverlay').classList.remove('active');
+            document.getElementById('productModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function changeQuantity(delta) {
+            currentQuantity = Math.max(1, currentQuantity + delta);
+            document.getElementById('quantityValue').textContent = currentQuantity;
+            updateModalPrice();
+        }
+
+        function updateModalPrice() {
+            if (!currentProduct) return;
+            const total = currentProduct.preco * currentQuantity;
+            document.getElementById('modalPrice').textContent = total.toFixed(2).replace('.', ',');
+        }
+
+        function addToCart() {
+            if (!currentProduct) return;
+            cart.push({ id: currentProduct.id, nome: currentProduct.nome, preco: currentProduct.preco, quantidade: currentQuantity, imagem: currentProduct.imagem, options: [] });
+            saveCart();
+            updateCartUI();
+            closeProductModal();
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((sum, item) => sum + item.quantidade, 0);
+            const total = cart.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+            document.getElementById('cartCount').textContent = count;
+            document.getElementById('cartTotal').textContent = 'R$ ' + total.toFixed(2).replace('.', ',');
+            document.getElementById('cartFloating').style.display = count > 0 ? 'flex' : 'none';
+            renderCartItems();
+        }
+
+        function renderCartItems() {
+            const container = document.getElementById('cartItems');
+            if (cart.length === 0) {
+                container.innerHTML = '<div class="empty-cart"><div class="empty-cart-icon">🛒</div><h3>Carrinho vazio</h3><p>Adicione itens do cardápio</p></div>';
+                return;
+            }
+            container.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <div class="cart-item-info" style="flex: 1;">
+                        <div class="cart-item-name">${item.nome}</div>
+                        <div class="cart-item-options">Qtd: ${item.quantidade}</div>
+                        <div class="cart-item-price">R$ ${(item.preco * item.quantidade).toFixed(2).replace('.', ',')}</div>
+                    </div>
+                    <button onclick="removeFromCart(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px;">🗑️</button>
+                </div>
+            `).join('');
+            const subtotal = cart.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+            document.getElementById('cartSubtotal').textContent = 'R$ ' + subtotal.toFixed(2).replace('.', ',');
+            document.getElementById('cartTotalFinal').textContent = 'R$ ' + subtotal.toFixed(2).replace('.', ',');
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            saveCart();
+            updateCartUI();
+        }
+
+        function openCart() {
+            document.getElementById('cartSidebar').classList.add('active');
+        }
+
+        function closeCart() {
+            document.getElementById('cartSidebar').classList.remove('active');
+        }
+
+        function checkout() {
+            if (cart.length === 0) return;
+            let message = `*Pedido - {{ pizzaria.nome }}*%0A%0A`;
+            let total = 0;
+            cart.forEach(item => {
+                const itemTotal = item.preco * item.quantidade;
+                total += itemTotal;
+                message += `• ${item.nome} (${item.quantidade}x) - R$ ${itemTotal.toFixed(2).replace('.', ',')}%0A`;
+            });
+            message += `%0A*Total: R$ ${total.toFixed(2).replace('.', ',')}*%0A%0A`;
+            message += `_Pedido feito pelo cardápio online_`;
+            const whatsapp = '{{ pizzaria.whatsapp }}'.replace(/\D/g, '');
+            window.open(`https://wa.me/${whatsapp}?text=${message}`, '_blank');
+        }
+
+        document.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', function () {
+                document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                const catId = this.dataset.cat;
+                document.querySelectorAll('.section-title, .products-grid-client').forEach(el => {
+                    el.style.display = (catId === 'all' || el.dataset.section === catId || el.id === `grid-${catId}`) ? '' : 'none';
+                });
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const term = this.value.toLowerCase();
+            document.querySelectorAll('.product-card-client').forEach(card => {
+                const name = card.querySelector('.product-name-client').textContent.toLowerCase();
+                card.style.display = name.includes(term) ? '' : 'none';
+            });
+        });
+
+        const products = {{ produtos| tojson | safe }};
+        loadCart();
+    </script>
+</body>
+
+</html>

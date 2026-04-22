@@ -9,10 +9,150 @@ body {
     color: #e2e8f0;
 }
 
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    background: #111827;
+    padding: 24px 16px;
+    border-right: 1px solid #1f2937;
+    transition: transform 0.3s;
+}
+
+.logo h2 {
+    margin: 0 0 4px 0;
+    color: #fff;
+    font-size: 1.25rem;
+}
+
+.logo .subtitle {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.nav-menu {
+    margin-top: 32px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #d1d5db;
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: all 0.2s;
+}
+
+.nav-item:hover {
+    background: #374151;
+    color: #fff;
+}
+
+.nav-item.active {
+    background: #1f2937;
+    color: #fff;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 32px;
+}
+
+.main-content {
+    flex: 1;
+    padding: 24px;
+    min-width: 0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.header-content h1 {
+    margin: 0 0 4px 0;
+    color: #fff;
+    font-size: 1.875rem;
+}
+
+.header-content p {
+    margin: 0;
+    color: #9ca3af;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #93c5fd;
+    text-decoration: none;
+    margin-bottom: 24px;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    gap: 4px;
+}
+
+.mobile-menu-btn span {
+    width: 24px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: 0.3s;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .main-content {
+        padding: 16px;
+    }
+
+    .header {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .header-content h1 {
+        font-size: 1.5rem;
+    }
+}
+
 .content {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 24px;
 }
 
 .content>a {
@@ -511,4 +651,104 @@ button {
     .store-preview {
         height: 520px;
     }
+}
+
+/* Toggle Switch Styles */
+.toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #475569;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked+.toggle-slider {
+    background-color: #3b82f6;
+}
+
+.toggle-switch input:checked+.toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-hint {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin-bottom: 16px;
+}
+
+/* Input with Prefix */
+.input-with-prefix {
+    display: flex;
+    align-items: center;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    background: #1e293b;
+}
+
+.input-with-prefix:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.input-prefix {
+    padding: 12px;
+    background: #334155;
+    border-right: 1px solid #475569;
+    color: #94a3b8;
+    font-weight: 500;
+    border-radius: 6px 0 0 6px;
+}
+
+.input-with-prefix input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 12px;
+    color: #e2e8f0;
+    font-size: 14px;
+}
+
+.input-with-prefix input:focus {
+    outline: none;
+}
+
+.input-with-prefix input::placeholder {
+    color: #64748b;
 }

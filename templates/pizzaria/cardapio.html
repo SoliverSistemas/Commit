@@ -1,0 +1,1287 @@
+{% extends "pizzaria/base_simple.html" %}
+
+{% block title %}Cardápio{% endblock %}
+{% block page_title %}Gerenciar Cardápio{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 24px;
+        height: calc(100vh - 200px);
+    }
+
+    .col-categorias {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .col-produtos {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .col-title {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .list-item {
+        padding: 12px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .list-item:hover {
+        background: #f9fafb;
+    }
+
+    .list-item.active {
+        background: #fef3c7;
+        border-left: 3px solid #f59e0b;
+    }
+
+    .list-item .icon {
+        font-size: 20px;
+    }
+
+    .list-item .name {
+        flex: 1;
+        font-weight: 500;
+    }
+
+    .list-item .badge {
+        background: #e5e7eb;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+    }
+
+    .add-btn {
+        width: 100%;
+        padding: 12px;
+        background: #f3f4f6;
+        border: 2px dashed #d1d5db;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        color: #6b7280;
+        margin-top: 12px;
+    }
+
+    .add-btn:hover {
+        background: #e5e7eb;
+    }
+
+    .produto-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 16px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .produto-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .produto-img {
+        width: 80px;
+        height: 80px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        object-fit: cover;
+    }
+
+    .produto-img.emoji-fade {
+        opacity: 0.5;
+    }
+
+    .categoria-produtos-group {
+        margin-bottom: 24px;
+    }
+
+    .categoria-produtos-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 8px;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+
+    .categoria-produtos-nome {
+        font-weight: 600;
+        font-size: 14px;
+        color: #374151;
+    }
+
+    .categoria-produtos-count {
+        background: #e5e7eb;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+    }
+
+    .toggle-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 4px;
+        margin-left: auto;
+        transition: transform 0.2s;
+    }
+
+    .toggle-btn:hover {
+        transform: scale(1.2);
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        margin-left: auto;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 24px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.slider {
+        background-color: #10b981;
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(20px);
+    }
+
+    .categorias-desativadas-header {
+        padding: 12px 8px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        margin-top: 16px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: #6b7280;
+    }
+
+    .categorias-desativadas-header:hover {
+        background: #e5e7eb;
+    }
+
+    .produto-info {
+        flex: 1;
+    }
+
+    .produto-nome {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+
+    .produto-desc {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 4px;
+    }
+
+    .produto-preco {
+        color: #ef4444;
+        font-weight: 700;
+        font-size: 18px;
+    }
+
+    .produto-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-ativo {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-inativo {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 32px;
+        cursor: pointer;
+        color: #9ca3af;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .form-textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .btn-primary {
+        background: #ef4444;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    /* Upload foto */
+    .photo-upload {
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .photo-upload:hover {
+        border-color: #ef4444;
+        background: #fef3c7;
+    }
+
+    .photo-preview {
+        width: 100%;
+        height: 200px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        display: none;
+    }
+
+    .photo-preview.has-image {
+        display: block;
+    }
+
+    /* Seções */
+    .secao-card {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .secao-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .opcao-item {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+    }
+
+    /* Cardápio Completo */
+    .cardapio-section {
+        max-width: 1200px;
+        margin: 0 auto 32px;
+    }
+
+    .cardapio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .cardapio-header h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .cardapio-grupo {
+        margin-bottom: 32px;
+    }
+
+    .cardapio-grupo-titulo {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .cardapio-grupo-subtitulo {
+        font-size: 14px;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 12px;
+        margin-top: 8px;
+    }
+
+    .cardapio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .produto-card-grande {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .produto-card-grande:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .produto-card-grande-img {
+        width: 100%;
+        height: 200px;
+        background: #f3f4f6;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        margin-bottom: 12px;
+    }
+
+    .produto-card-grande-img.emoji-fade {
+        opacity: 0.5;
+    }
+
+    .produto-card-grande-info {
+        flex: 1;
+    }
+
+    .produto-card-grande-nome {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 4px;
+        color: #1f2937;
+    }
+
+    .produto-card-grande-desc {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    .produto-card-grande-preco {
+        color: #ef4444;
+        font-weight: 700;
+        font-size: 20px;
+    }
+
+    .produto-card-grande-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+
+    .status-ativo-grande {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-inativo-grande {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="col-categorias">
+        <div class="col-title">📂 Categorias</div>
+        <div id="listaCategorias"></div>
+        <button class="add-btn" onclick="openModalCategoria()">+ Nova Categoria</button>
+    </div>
+</div>
+
+<!-- Cardápio Completo -->
+<div class="cardapio-section">
+    <div class="cardapio-header">
+        <h2>🍕 Cardápio Completo</h2>
+        <button class="btn btn-primary" onclick="openModal()">+ Novo Produto</button>
+    </div>
+    <div id="cardapioContainer">
+        <p style="color: #9ca3af; text-align: center; padding: 40px 0;">Carregando cardápio...</p>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalProduto">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Novo Produto</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="formProduto">
+                <input type="hidden" id="produtoId">
+
+                <div class="form-group">
+                    <label class="form-label">Foto</label>
+                    <div class="photo-preview" id="photoPreview"></div>
+                    <div class="photo-upload" onclick="document.getElementById('photoInput').click()">
+                        <span id="photoPlaceholder">📸 Clique para enviar foto</span>
+                    </div>
+                    <input type="file" id="photoInput" accept="image/*" style="display: none;"
+                        onchange="handlePhoto(event)">
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Nome *</label>
+                        <input type="text" class="form-input" id="prodNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Preço *</label>
+                        <input type="number" class="form-input" id="prodPreco" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Descrição</label>
+                    <textarea class="form-textarea" id="prodDesc"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Categoria</label>
+                    <select class="form-select" id="prodCategoria">
+                        <option value="">Selecione...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="prodAtivo" checked>
+                        Ativo
+                    </label>
+                </div>
+
+                <h4 style="margin: 24px 0 16px; font-size: 14px; text-transform: uppercase; color: #6b7280;">
+                    ⚙️ Seções
+                </h4>
+                <div id="secoesContainer"></div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="addSecao()">
+                    + Nova Seção
+                </button>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveProduto()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Seção -->
+<div class="modal-overlay" id="modalSecao" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Nova Seção</h3>
+            <button class="modal-close" onclick="closeModalSecao()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" id="secaoNome" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-select" id="secaoTipo" onchange="toggleMaxSelecao()">
+                    <option value="single">Única escolha</option>
+                    <option value="multiple">Múltipla escolha</option>
+                </select>
+            </div>
+            <div class="form-group" id="maxSelecaoGroup" style="display: none;">
+                <label class="form-label">Máximo de opções (0 = ilimitado)</label>
+                <input type="number" class="form-input" id="secaoMaxSelecao" value="0" min="0">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="secaoObrigatoria">
+                    Obrigatória
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModalSecao()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveSecao()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Categoria -->
+<div class="modal-overlay" id="modalCategoria" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Nova Categoria</h3>
+            <button class="modal-close" onclick="closeModalCategoria()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" id="catNome" placeholder="Ex: Pizzas, Bebidas">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ícone</label>
+                <input type="text" class="form-input" id="catIcone" placeholder="Ex: 🍕, 🥤" maxlength="2">
+            </div>
+            <p style="font-size: 12px; color: #6b7280;">Máximo de 15 categorias por pizzaria</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModalCategoria()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveCategoria()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Opção -->
+<div class="modal-overlay" id="modalOpcao" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Nova Opção</h3>
+            <button class="modal-close" onclick="closeModalOpcao()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="opcaoSecaoId">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" id="opcaoNome" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Preço adicional</label>
+                <input type="number" class="form-input" id="opcaoPreco" value="0" step="0.01" min="0">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModalOpcao()">Cancelar</button>
+            <button class="btn btn-primary" onclick="saveOpcao()">Salvar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let categorias = [];
+    let produtos = [];
+    let categoriaSelecionada = null;
+    let secoes = [];
+    let photoData = null;
+
+    async function loadData() {
+        const [catRes, prodRes] = await Promise.all([
+            fetch('/pizzaria/api/categorias'),
+            fetch('/pizzaria/api/produtos')
+        ]);
+
+        const catData = await catRes.json();
+        const prodData = await prodRes.json();
+
+        console.log('Categorias recebidas:', catData);
+        console.log('catData.categorias:', catData.categorias);
+
+        if (catData.success && catData.categorias) {
+            categorias = catData.categorias;
+        } else {
+            categorias = [];
+        }
+
+        if (prodData.success) produtos = prodData.produtos || [];
+
+        console.log('Categorias após carregamento:', categorias);
+        console.log('Categorias ativas:', categorias.filter(c => c.ativa));
+        console.log('Categorias inativas:', categorias.filter(c => !c.ativa));
+
+        renderCategorias();
+        renderCardapioCompleto();
+    }
+
+    function openModalCategoria() {
+        if (categorias.length >= 15) {
+            alert('Limite de 15 categorias atingido!');
+            return;
+        }
+        document.getElementById('catNome').value = '';
+        document.getElementById('catIcone').value = '';
+        document.getElementById('modalCategoria').style.display = 'flex';
+    }
+
+    function closeModalCategoria() {
+        document.getElementById('modalCategoria').style.display = 'none';
+    }
+
+    async function saveCategoria() {
+        const nome = document.getElementById('catNome').value.trim();
+        const icone = document.getElementById('catIcone').value.trim();
+
+        if (!nome) {
+            alert('Nome é obrigatório');
+            return;
+        }
+
+        if (categorias.length >= 15) {
+            alert('Limite de 15 categorias atingido!');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pizzaria/api/categorias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, icone })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Categoria criada com sucesso!');
+                closeModalCategoria();
+                await loadData();
+            } else {
+                alert('Erro ao criar categoria: ' + result.error);
+            }
+        } catch (error) {
+            alert('Erro ao criar categoria: ' + error.message);
+        }
+    }
+
+    function renderCardapioCompleto() {
+        const container = document.getElementById('cardapioContainer');
+
+        if (produtos.length === 0) {
+            container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px 0;">Nenhum produto cadastrado</p>';
+            return;
+        }
+
+        // Se uma categoria estiver selecionada, mostrar apenas produtos dessa categoria
+        if (categoriaSelecionada) {
+            const categoria = categorias.find(c => c.id === categoriaSelecionada);
+
+            if (!categoria || !categoria.ativa) {
+                container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px 0;">Selecione uma categoria ativa</p>';
+                return;
+            }
+
+            const produtosCategoria = produtos.filter(p => p.categoria_global_id === categoriaSelecionada);
+
+            if (produtosCategoria.length === 0) {
+                container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 40px 0;">Nenhum produto nesta categoria</p>';
+                return;
+            }
+
+            const html = `
+                <div class="cardapio-grupo">
+                    <div class="cardapio-grupo-titulo">${categoria.icone || '🍕'} ${categoria.nome}</div>
+                    <div class="cardapio-grid">
+                        ${produtosCategoria.map(prod => `
+                            <div class="produto-card-grande" onclick="editProduto('${prod.id}')">
+                                <div class="produto-card-grande-img ${!prod.foto ? 'emoji-fade' : ''}" style="${prod.foto ? 'background-image: url(' + prod.foto + ')' : ''}">
+                                    ${!prod.foto ? '🍕' : ''}
+                                </div>
+                                <div class="produto-card-grande-info">
+                                    <div class="produto-card-grande-nome">${prod.nome}</div>
+                                    ${prod.descricao ? `<div class="produto-card-grande-desc">${prod.descricao}</div>` : ''}
+                                    <div class="produto-card-grande-preco">R$ ${parseFloat(prod.preco_base).toFixed(2)}</div>
+                                    <div class="produto-card-grande-status ${prod.ativo ? 'status-ativo-grande' : 'status-inativo-grande'}">
+                                        ${prod.ativo ? 'Ativo' : 'Inativo'}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        } else {
+            // Se nenhuma categoria selecionada, mostrar todas as categorias ativas
+            let html = '';
+            categorias.forEach(cat => {
+                if (!cat.ativa) return;
+
+                const produtosCat = produtos.filter(p => p.categoria_global_id === cat.id);
+                if (produtosCat.length === 0) return;
+
+                html += `
+                    <div class="cardapio-grupo">
+                        <div class="cardapio-grupo-titulo">${cat.icone || '🍕'} ${cat.nome}</div>
+                        <div class="cardapio-grid">
+                            ${produtosCat.map(prod => `
+                                <div class="produto-card-grande" onclick="editProduto('${prod.id}')">
+                                    <div class="produto-card-grande-img ${!prod.foto ? 'emoji-fade' : ''}" style="${prod.foto ? 'background-image: url(' + prod.foto + ')' : ''}">
+                                        ${!prod.foto ? '🍕' : ''}
+                                    </div>
+                                    <div class="produto-card-grande-info">
+                                        <div class="produto-card-grande-nome">${prod.nome}</div>
+                                        ${prod.descricao ? `<div class="produto-card-grande-desc">${prod.descricao}</div>` : ''}
+                                        <div class="produto-card-grande-preco">R$ ${parseFloat(prod.preco_base).toFixed(2)}</div>
+                                        <div class="produto-card-grande-status ${prod.ativo ? 'status-ativo-grande' : 'status-inativo-grande'}">
+                                            ${prod.ativo ? 'Ativo' : 'Inativo'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html || '<p style="color: #9ca3af; text-align: center; padding: 40px 0;">Nenhum produto cadastrado</p>';
+        }
+    }
+
+    function renderCategorias() {
+        const ativas = categorias.filter(c => c.ativa);
+        const inativas = categorias.filter(c => !c.ativa);
+
+        let html = ativas.map(cat => `
+        <div class="list-item ${categoriaSelecionada === cat.id ? 'active' : ''}" onclick="selectCategoria('${cat.id}')">
+            <span class="icon">${cat.icone || '📂'}</span>
+            <span class="name">${cat.nome}</span>
+            <label class="switch">
+                <input type="checkbox" ${cat.ativa ? 'checked' : ''} onclick="event.stopPropagation(); toggleCategoria('${cat.id}', this.checked)">
+                <span class="slider"></span>
+            </label>
+        </div>
+    `).join('');
+
+        if (inativas.length > 0) {
+            html += `
+                <div class="categorias-desativadas-header" onclick="toggleDesativadas()">
+                    <span>📁 Categorias desativadas (${inativas.length})</span>
+                    <span id="chevronDesativadas">▼</span>
+                </div>
+                <div id="listaDesativadas" style="display: none;">
+                    ${inativas.map(cat => `
+                        <div class="list-item" onclick="selectCategoria('${cat.id}')">
+                            <span class="icon">${cat.icone || '📂'}</span>
+                            <span class="name">${cat.nome}</span>
+                            <label class="switch">
+                                <input type="checkbox" ${cat.ativa ? 'checked' : ''} onclick="event.stopPropagation(); toggleCategoria('${cat.id}', this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        document.getElementById('listaCategorias').innerHTML = html;
+    }
+
+    function toggleDesativadas() {
+        const lista = document.getElementById('listaDesativadas');
+        const chevron = document.getElementById('chevronDesativadas');
+        lista.style.display = lista.style.display === 'none' ? 'block' : 'none';
+        chevron.textContent = lista.style.display === 'none' ? '▼' : '▲';
+    }
+
+    async function toggleCategoria(catId, ativa) {
+        const res = await fetch(`/pizzaria/api/categorias/${catId}/toggle`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ativa })
+        });
+
+        if (res.ok) {
+            // Recarregar todos os dados para garantir consistência
+            await loadData();
+            renderCardapioCompleto();
+        } else {
+            alert('Erro ao atualizar categoria');
+        }
+    }
+
+    async function selectCategoria(catId) {
+        const categoria = categorias.find(c => c.id === catId);
+
+        // Não permitir selecionar categorias desativadas
+        if (!categoria || !categoria.ativa) {
+            alert('Esta categoria está desativada. Ative-a para gerenciar seus produtos.');
+            return;
+        }
+
+        categoriaSelecionada = catId;
+        renderCategorias();
+        renderCardapioCompleto();
+    }
+
+    function openModal() {
+        document.getElementById('formProduto').reset();
+        document.getElementById('produtoId').value = '';
+        document.getElementById('modalTitle').textContent = 'Novo Produto';
+        secoes = [];
+        photoData = null;
+        renderSecoes();
+
+        // Carregar categorias no select
+        document.getElementById('prodCategoria').innerHTML = '<option value="">Selecione...</option>' +
+            categorias.filter(c => c.ativa).map(c => `<option value="${c.id}">${c.icone || ''} ${c.nome}</option>`).join('');
+
+        document.getElementById('photoPreview').style.display = 'none';
+        document.getElementById('photoPlaceholder').textContent = '📸 Clique para enviar foto';
+
+        document.getElementById('modalProduto').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modalProduto').style.display = 'none';
+    }
+
+    function handlePhoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Mostrar preview
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('photoPreview').style.backgroundImage = `url(${e.target.result})`;
+            document.getElementById('photoPreview').style.display = 'block';
+            document.getElementById('photoPlaceholder').textContent = 'Enviando...';
+        };
+        reader.readAsDataURL(file);
+
+        // Upload para o servidor
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/pizzaria/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    photoData = data.url;
+                    document.getElementById('photoPlaceholder').textContent = file.name;
+                } else {
+                    alert('Erro ao fazer upload: ' + data.error);
+                    photoData = null;
+                    document.getElementById('photoPreview').style.display = 'none';
+                }
+            })
+            .catch(err => {
+                alert('Erro ao fazer upload: ' + err.message);
+                photoData = null;
+                document.getElementById('photoPreview').style.display = 'none';
+            });
+    }
+
+    function addSecao() {
+        document.getElementById('secaoNome').value = '';
+        document.getElementById('secaoTipo').value = 'single';
+        document.getElementById('secaoMaxSelecao').value = '0';
+        document.getElementById('secaoObrigatoria').checked = false;
+        document.getElementById('maxSelecaoGroup').style.display = 'none';
+        document.getElementById('modalSecao').style.display = 'flex';
+    }
+
+    function closeModalSecao() {
+        document.getElementById('modalSecao').style.display = 'none';
+    }
+
+    function toggleMaxSelecao() {
+        const tipo = document.getElementById('secaoTipo').value;
+        document.getElementById('maxSelecaoGroup').style.display = tipo === 'multiple' ? 'block' : 'none';
+    }
+
+    function saveSecao() {
+        const nome = document.getElementById('secaoNome').value;
+        if (!nome) {
+            alert('Nome é obrigatório');
+            return;
+        }
+
+        const tipo = document.getElementById('secaoTipo').value;
+        const maxSelecao = tipo === 'multiple' ? parseInt(document.getElementById('secaoMaxSelecao').value) : null;
+        const obrigatorio = document.getElementById('secaoObrigatoria').checked;
+
+        secoes.push({
+            id: Date.now(),
+            nome,
+            tipo,
+            obrigatorio,
+            max_selecao: maxSelecao,
+            opcoes: []
+        });
+
+        closeModalSecao();
+        renderSecoes();
+    }
+
+    function addOpcao(secaoId) {
+        document.getElementById('opcaoSecaoId').value = secaoId;
+        document.getElementById('opcaoNome').value = '';
+        document.getElementById('opcaoPreco').value = '0';
+        document.getElementById('modalOpcao').style.display = 'flex';
+    }
+
+    function closeModalOpcao() {
+        document.getElementById('modalOpcao').style.display = 'none';
+    }
+
+    function saveOpcao() {
+        const secaoId = document.getElementById('opcaoSecaoId').value;
+        const nome = document.getElementById('opcaoNome').value;
+        if (!nome) {
+            alert('Nome é obrigatório');
+            return;
+        }
+
+        const preco = parseFloat(document.getElementById('opcaoPreco').value) || 0;
+        const secao = secoes.find(s => s.id == secaoId);
+        if (secao) {
+            secao.opcoes.push({
+                id: Date.now(),
+                nome,
+                preco_adicional: preco
+            });
+        }
+
+        closeModalOpcao();
+        renderSecoes();
+    }
+
+    function renderSecoes() {
+        document.getElementById('secoesContainer').innerHTML = secoes.map((sec, idx) => `
+        <div class="secao-card">
+            <div class="secao-header">
+                <div>
+                    <strong>${sec.nome}</strong>
+                    <span style="font-size: 12px; color: #6b7280; margin-left: 8px;">
+                        (${sec.tipo === 'multiple' ? 'Múltipla' : 'Única'})
+                        ${sec.max_selecao ? `- Max: ${sec.max_selecao}` : ''}
+                    </span>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="removeSecao(${idx})">🗑️</button>
+            </div>
+            <div id="opcoes-${idx}"></div>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="addOpcao(${idx})" style="margin-top: 8px;">+ Opção</button>
+        </div>
+    `).join('');
+
+        secoes.forEach((sec, idx) => {
+            const opContainer = document.getElementById(`opcoes-${idx}`);
+            if (opContainer) {
+                opContainer.innerHTML = sec.opcoes.map((op, opIdx) => `
+                <div class="opcao-item">
+                    <input type="text" class="form-input" value="${op.nome}" onchange="updateOpcao(${idx}, ${opIdx}, 'nome', this.value)" placeholder="Nome">
+                    <input type="number" class="form-input" value="${op.preco_adicional}" step="0.01" onchange="updateOpcao(${idx}, ${opIdx}, 'preco_adicional', this.value)" placeholder="Preço" style="width: 100px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="removeOpcao(${idx}, ${opIdx})">🗑️</button>
+                </div>
+            `).join('');
+            }
+        });
+    }
+
+    function removeSecao(idx) {
+        secoes.splice(idx, 1);
+        renderSecoes();
+    }
+
+    function addOpcao(secIdx) {
+        const nome = prompt('Nome da opção:');
+        if (!nome) return;
+        const preco = parseFloat(prompt('Preço adicional:', '0') || '0');
+        secoes[secIdx].opcoes.push({ nome, preco_adicional: preco });
+        renderSecoes();
+    }
+
+    function updateOpcao(secIdx, opIdx, campo, valor) {
+        secoes[secIdx].opcoes[opIdx][campo] = campo === 'preco_adicional' ? parseFloat(valor) : valor;
+    }
+
+    function removeOpcao(secIdx, opIdx) {
+        secoes[secIdx].opcoes.splice(opIdx, 1);
+        renderSecoes();
+    }
+
+    async function saveProduto() {
+        const nome = document.getElementById('prodNome').value;
+        const preco = document.getElementById('prodPreco').value;
+        const categoria = document.getElementById('prodCategoria').value;
+        const id = document.getElementById('produtoId').value;
+
+        console.log('Dados do formulário:', { nome, preco, categoria, id });
+
+        if (!nome || !preco) {
+            alert('Preencha os campos obrigatórios!');
+            return;
+        }
+
+        const data = {
+            nome,
+            descricao: document.getElementById('prodDesc').value,
+            preco_base: parseFloat(preco),
+            categoria_global_id: categoria || null,
+            ativo: document.getElementById('prodAtivo').checked,
+            foto: photoData,
+            secoes: secoes
+        };
+
+        console.log('Data para enviar:', data);
+
+        const url = id ? `/pizzaria/api/produtos/${id}` : '/pizzaria/api/produtos';
+        const method = id ? 'PUT' : 'POST';
+
+        console.log('Request:', { url, method });
+
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        console.log('Response:', result);
+
+        if (result.success) {
+            closeModal();
+            await loadData();
+            renderCardapioCompleto();
+            alert(id ? 'Produto atualizado!' : 'Produto criado!');
+        } else {
+            alert('Erro: ' + result.error);
+        }
+    }
+
+    async function editProduto(id) {
+        const prod = produtos.find(p => p.id === id);
+        if (!prod) {
+            console.error('Produto não encontrado:', id);
+            return;
+        }
+
+        console.log('Produto carregado:', prod);
+
+        document.getElementById('produtoId').value = prod.id;
+        document.getElementById('prodNome').value = prod.nome;
+        document.getElementById('prodDesc').value = prod.descricao || '';
+        document.getElementById('prodPreco').value = prod.preco_base;
+        document.getElementById('prodAtivo').checked = prod.ativo;
+
+        // Carregar categorias
+        document.getElementById('prodCategoria').innerHTML = '<option value="">Selecione...</option>' +
+            categorias.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+
+        document.getElementById('prodCategoria').value = prod.categoria_global_id || '';
+        console.log('Categoria definida:', prod.categoria_global_id);
+
+        // Buscar seções usando a nova API
+        try {
+            const res = await fetch(`/pizzaria/api/produtos/${id}/secoes`);
+            const data = await res.json();
+            if (data.success) {
+                secoes = data.secoes || [];
+                console.log('Seções carregadas:', secoes);
+            } else {
+                secoes = [];
+            }
+        } catch (e) {
+            console.error('Erro ao carregar seções:', e);
+            secoes = [];
+        }
+
+        if (prod.foto) {
+            photoData = prod.foto;
+            document.getElementById('photoPreview').style.backgroundImage = `url(${prod.foto})`;
+            document.getElementById('photoPreview').style.display = 'block';
+            document.getElementById('photoPlaceholder').textContent = 'Foto carregada';
+        } else {
+            photoData = null;
+            document.getElementById('photoPreview').style.display = 'none';
+            document.getElementById('photoPlaceholder').textContent = '📸 Clique para enviar foto';
+        }
+
+        secoes = prod.secoes || [];
+        console.log('Seções carregadas:', secoes);
+        renderSecoes();
+
+        document.getElementById('modalTitle').textContent = 'Editar Produto';
+        document.getElementById('modalProduto').style.display = 'flex';
+    }
+
+    loadData();
+</script>
+{% endblock %}

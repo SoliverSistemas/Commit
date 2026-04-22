@@ -1,0 +1,804 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Configurações do Sistema{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="page-header">
+        <h1>Configurações do Sistema</h1>
+        <p>Gerencie as configurações gerais da plataforma</p>
+    </div>
+
+    {% if erro %}
+    <div class="alert alert-danger">
+        <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Configurações Gerais</h3>
+                </div>
+                <div class="card-body">
+                    <form id="formConfiguracoes">
+                        <div class="form-group">
+                            <label for="nome_sistema">Nome do Sistema *</label>
+                            <input type="text" class="form-control" id="nome_sistema" 
+                                   value="Salin's Pizzaria" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email_suporte">E-mail de Suporte *</label>
+                            <input type="email" class="form-control" id="email_suporte" 
+                                   value="suporte@salinspizzaria.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="telefone_suporte">Telefone de Suporte</label>
+                            <input type="tel" class="form-control" id="telefone_suporte" 
+                                   value="(11) 99999-9999">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="whatsapp">WhatsApp *</label>
+                            <input type="tel" class="form-control" id="whatsapp" 
+                                   value="(11) 99999-9999" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="url_base">URL Base *</label>
+                            <input type="url" class="form-control" id="url_base" 
+                                   value="https://salinspizzaria.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="manutencao" />
+                                <span class="checkmark"></span>
+                                Modo de Manutenção
+                            </label>
+                            <small class="form-text text-muted">
+                                Ative para colocar o sistema em manutenção. Apenas administradores poderão acessar.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="cadastros_abertos" checked />
+                                <span class="checkmark"></span>
+                                Permitir Novos Cadastros
+                            </label>
+                            <small class="form-text text-muted">
+                                Desative para impedir novas pizzarias de se cadastrarem.
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Configurações de Pagamento</h3>
+                </div>
+                <div class="card-body">
+                    <form id="formPagamento">
+                        <div class="form-group">
+                            <label for="mercado_pago_ativo">
+                                <input type="checkbox" id="mercado_pago_ativo" checked />
+                                Mercado Pago Ativo
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mercado_pago_public_key">Public Key</label>
+                            <input type="text" class="form-control" id="mercado_pago_public_key" 
+                                   placeholder="TEST-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mercado_pago_access_token">Access Token</label>
+                            <input type="text" class="form-control" id="mercado_pago_access_token" 
+                                   placeholder="TEST-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="form-group">
+                            <label for="taxa_servico">Taxa de Serviço (%)</label>
+                            <input type="number" class="form-control" id="taxa_servico" 
+                                   value="5" min="0" max="100" step="0.1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="valor_minimo_pedido">Valor Mínimo do Pedido</label>
+                            <input type="number" class="form-control" id="valor_minimo_pedido" 
+                                   value="15" min="0" step="0.01">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Pagamento
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Configurações de E-mail</h3>
+                </div>
+                <div class="card-body">
+                    <form id="formEmail">
+                        <div class="form-group">
+                            <label for="smtp_host">SMTP Host *</label>
+                            <input type="text" class="form-control" id="smtp_host" 
+                                   value="smtp.gmail.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_port">Porta SMTP *</label>
+                            <input type="number" class="form-control" id="smtp_port" 
+                                   value="587" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_user">Usuário SMTP *</label>
+                            <input type="email" class="form-control" id="smtp_user" 
+                                   value="noreply@salinspizzaria.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="smtp_pass">Senha SMTP *</label>
+                            <input type="password" class="form-control" id="smtp_pass" 
+                                   placeholder="••••••••" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="smtp_ssl" checked />
+                                <span class="checkmark"></span>
+                                Usar SSL/TLS
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email_from">E-mail Remetente *</label>
+                            <input type="email" class="form-control" id="email_from" 
+                                   value="noreply@salinspizzaria.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email_from_name">Nome Remetente *</label>
+                            <input type="text" class="form-control" id="email_from_name" 
+                                   value="Salin's Pizzaria" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar E-mail
+                        </button>
+                        
+                        <button type="button" class="btn btn-secondary ml-2" onclick="testarEmail()">
+                            <i class="fas fa-paper-plane"></i> Testar E-mail
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Backup e Manutenção</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Último Backup</label>
+                        <div class="backup-info">
+                            <i class="fas fa-database"></i>
+                            <span id="ultimoBackup">Nunca realizado</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Agendamento de Backup</label>
+                        <select class="form-control" id="backup_agendamento">
+                            <option value="disabled">Desabilitado</option>
+                            <option value="daily">Diário</option>
+                            <option value="weekly">Semanal</option>
+                            <option value="monthly">Mensal</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="backup_auto" />
+                            <span class="checkmark"></span>
+                            Backup Automático
+                        </label>
+                        <small class="form-text text-muted">
+                            Realiza backups automáticos conforme agendamento.
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    
+                    <button type="button" class="btn btn-primary" onclick="fazerBackup()">
+                        <i class="fas fa-download"></i> Fazer Backup Agora
+                    </button>
+                    
+                    <button type="button" class="btn btn-warning ml-2" onclick="limparCache()">
+                        <i class="fas fa-broom"></i> Limpar Cache
+                    </button>
+                    
+                    <button type="button" class="btn btn-danger ml-2" onclick="resetarSistema()">
+                        <i class="fas fa-exclamation-triangle"></i> Resetar Sistema
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>Logs do Sistema</h3>
+            <div class="header-actions">
+                <button class="btn btn-sm btn-secondary" onclick="carregarLogs()">
+                    <i class="fas fa-sync"></i> Atualizar
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="limparLogs()">
+                    <i class="fas fa-trash"></i> Limpar Logs
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="log-container" id="logContainer">
+                <div class="text-center text-muted">
+                    <i class="fas fa-file-alt fa-3x mb-3"></i>
+                    <p>Carregando logs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Resetar Sistema -->
+<div class="modal" id="modalReset">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>⚠️ Confirmar Reset do Sistema</h4>
+            <button class="modal-close" onclick="fecharModalReset()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="alert alert-danger">
+                <strong>ATENÇÃO:</strong> Esta ação é irreversível e irá:
+            </div>
+            <ul>
+                <li>Apagar todos os dados do sistema</li>
+                <li>Resetar todas as configurações</li>
+                <li>Remover todas as pizzarias cadastradas</li>
+                <li>Limpar todos os pedidos e dados</li>
+            </ul>
+            
+            <div class="form-group">
+                <label>Digite "RESETAR" para confirmar:</label>
+                <input type="text" class="form-control" id="confirmReset" placeholder="RESETAR">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharModalReset()">Cancelar</button>
+            <button class="btn btn-danger" onclick="confirmarReset()" disabled id="btnReset">
+                <i class="fas fa-exclamation-triangle"></i> Resetar Sistema
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Carregar configurações na inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    carregarConfiguracoes();
+    carregarLogs();
+});
+
+// Carregar configurações do backend
+async function carregarConfiguracoes() {
+    try {
+        const response = await fetch('/admin/api/configuracoes');
+        const data = await response.json();
+        
+        if (data.status === 'ok') {
+            const config = data.configuracoes;
+            
+            // Preencher formulário com configurações
+            if (config) {
+                Object.keys(config).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        if (element.type === 'checkbox') {
+                            element.checked = config[key];
+                        } else {
+                            element.value = config[key];
+                        }
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+    }
+}
+
+// Submit do formulário de configurações gerais
+document.getElementById('formConfiguracoes').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const dados = {
+        tipo: 'gerais',
+        dados: {
+            nome_sistema: document.getElementById('nome_sistema').value,
+            email_suporte: document.getElementById('email_suporte').value,
+            telefone_suporte: document.getElementById('telefone_suporte').value,
+            whatsapp: document.getElementById('whatsapp').value,
+            url_base: document.getElementById('url_base').value,
+            manutencao: document.getElementById('manutencao').checked,
+            cadastros_abertos: document.getElementById('cadastros_abertos').checked
+        }
+    };
+    
+    await salvarConfiguracoes(dados);
+});
+
+// Submit do formulário de pagamento
+document.getElementById('formPagamento').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const dados = {
+        tipo: 'pagamento',
+        dados: {
+            mercado_pago_ativo: document.getElementById('mercado_pago_ativo').checked,
+            mercado_pago_public_key: document.getElementById('mercado_pago_public_key').value,
+            mercado_pago_access_token: document.getElementById('mercado_pago_access_token').value,
+            taxa_servico: parseFloat(document.getElementById('taxa_servico').value),
+            valor_minimo_pedido: parseFloat(document.getElementById('valor_minimo_pedido').value)
+        }
+    };
+    
+    await salvarConfiguracoes(dados);
+});
+
+// Submit do formulário de e-mail
+document.getElementById('formEmail').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const dados = {
+        tipo: 'email',
+        dados: {
+            smtp_host: document.getElementById('smtp_host').value,
+            smtp_port: parseInt(document.getElementById('smtp_port').value),
+            smtp_user: document.getElementById('smtp_user').value,
+            smtp_pass: document.getElementById('smtp_pass').value,
+            smtp_ssl: document.getElementById('smtp_ssl').checked,
+            email_from: document.getElementById('email_from').value,
+            email_from_name: document.getElementById('email_from_name').value
+        }
+    };
+    
+    await salvarConfiguracoes(dados);
+});
+
+// Salvar configurações
+async function salvarConfiguracoes(dados) {
+    try {
+        const response = await fetch('/admin/configuracoes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dados)
+        });
+        
+        const result = await response.json();
+        
+        if (result.message) {
+            mostrarAlerta(result.message, 'success');
+        } else {
+            mostrarAlerta('Configurações salvas com sucesso!', 'success');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao salvar configurações: ' + error.message, 'danger');
+    }
+}
+
+// Testar e-mail
+async function testarEmail() {
+    try {
+        mostrarAlerta('Enviando e-mail de teste...', 'info');
+        
+        const response = await fetch('/admin/api/testar-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: document.getElementById('email_suporte').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
+            mostrarAlerta('E-mail de teste enviado com sucesso!', 'success');
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao testar e-mail: ' + error.message, 'danger');
+    }
+}
+
+// Fazer backup
+async function fazerBackup() {
+    try {
+        if (!confirm('Deseja fazer um backup completo do sistema agora?')) {
+            return;
+        }
+        
+        mostrarAlerta('Iniciando backup...', 'info');
+        
+        const response = await fetch('/admin/api/backup', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
+            mostrarAlerta('Backup realizado com sucesso!', 'success');
+            document.getElementById('ultimoBackup').textContent = new Date().toLocaleString();
+            
+            // Download do arquivo
+            if (result.url) {
+                window.open(result.url, '_blank');
+            }
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao fazer backup: ' + error.message, 'danger');
+    }
+}
+
+// Limpar cache
+async function limparCache() {
+    try {
+        if (!confirm('Deseja limpar o cache do sistema?')) {
+            return;
+        }
+        
+        const response = await fetch('/admin/api/limpar-cache', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
+            mostrarAlerta('Cache limpo com sucesso!', 'success');
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao limpar cache: ' + error.message, 'danger');
+    }
+}
+
+// Resetar sistema
+function resetarSistema() {
+    document.getElementById('modalReset').style.display = 'flex';
+}
+
+// Fechar modal reset
+function fecharModalReset() {
+    document.getElementById('modalReset').style.display = 'none';
+    document.getElementById('confirmReset').value = '';
+    document.getElementById('btnReset').disabled = true;
+}
+
+// Confirmar reset
+document.getElementById('confirmReset').addEventListener('input', function() {
+    const btnReset = document.getElementById('btnReset');
+    btnReset.disabled = this.value !== 'RESETAR';
+});
+
+async function confirmarReset() {
+    try {
+        const response = await fetch('/admin/api/resetar-sistema', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
+            mostrarAlerta('Sistema resetado com sucesso! Redirecionando...', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'danger');
+        }
+        
+        fecharModalReset();
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao resetar sistema: ' + error.message, 'danger');
+    }
+}
+
+// Carregar logs
+async function carregarLogs() {
+    try {
+        const response = await fetch('/admin/api/logs');
+        const data = await response.json();
+        
+        const container = document.getElementById('logContainer');
+        
+        if (data.status === 'ok' && data.logs.length > 0) {
+            container.innerHTML = data.logs.map(log => `
+                <div class="log-entry log-${log.level.toLowerCase()}">
+                    <div class="log-header">
+                        <span class="log-time">${log.time}</span>
+                        <span class="log-level">${log.level}</span>
+                        <span class="log-source">${log.source}</span>
+                    </div>
+                    <div class="log-message">${log.message}</div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-file-alt fa-3x mb-3"></i>
+                    <p>Nenhum log encontrado.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar logs:', error);
+        document.getElementById('logContainer').innerHTML = `
+            <div class="text-center text-danger">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                <p>Erro ao carregar logs.</p>
+            </div>
+        `;
+    }
+}
+
+// Limpar logs
+async function limparLogs() {
+    try {
+        if (!confirm('Deseja limpar todos os logs do sistema?')) {
+            return;
+        }
+        
+        const response = await fetch('/admin/api/logs', {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'ok') {
+            mostrarAlerta('Logs limpos com sucesso!', 'success');
+            carregarLogs();
+        } else {
+            mostrarAlerta('Erro: ' + result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarAlerta('Erro ao limpar logs: ' + error.message, 'danger');
+    }
+}
+
+// Mostrar alerta
+function mostrarAlerta(mensagem, tipo) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${tipo} alert-dismissible`;
+    alertDiv.innerHTML = `
+        ${mensagem}
+        <button type="button" class="close" onclick="this.parentElement.remove()">
+            <span>&times;</span>
+        </button>
+    `;
+    
+    const container = document.querySelector('.admin-page');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        if (alertDiv.parentElement) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.backup-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-top: 5px;
+}
+
+.backup-info i {
+    color: #007bff;
+}
+
+.log-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.log-entry {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    border-left: 4px solid;
+}
+
+.log-error {
+    border-left-color: #dc3545;
+    background: #f8d7da;
+}
+
+.log-warning {
+    border-left-color: #ffc107;
+    background: #fff3cd;
+}
+
+.log-info {
+    border-left-color: #17a2b8;
+    background: #d1ecf1;
+}
+
+.log-success {
+    border-left-color: #28a745;
+    background: #d4edda;
+}
+
+.log-header {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.log-time {
+    color: #666;
+    font-family: monospace;
+}
+
+.log-level {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.log-source {
+    color: #666;
+}
+
+.log-message {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: #dc3545;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.form-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    display: block;
+}
+
+.ml-2 {
+    margin-left: 8px;
+}
+
+.mt-4 {
+    margin-top: 24px;
+}
+</style>
+{% endblock %}

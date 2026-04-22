@@ -1,0 +1,363 @@
+{% extends "pizzaria/base_simple.html" %}
+
+{% block title %}Categorias{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+
+{% block content %}
+<div class="categories-container">
+    <!-- Seção: Categorias Predefinidas -->
+    <div class="list-section">
+        <div class="section-header">
+            <h2>📂 Categorias Disponíveis</h2>
+            <p>Ative ou desative as categorias para seu cardápio</p>
+            <button class="btn btn-primary" onclick="openModalNovaCategoria()">+ Nova Categoria</button>
+        </div>
+
+        {% if categorias %}
+        <div class="categories-list">
+            {% for c in categorias %}
+            <div class="category-item">
+                <div class="category-info">
+                    <span class="category-icon">{{ c.icone or "🍕" }}</span>
+                    <span class="category-name">{{ c.nome }}</span>
+                    <span class="category-status {% if c.ativa %}active{% else %}inactive{% endif %}">
+                        {% if c.ativa %}Ativa{% else %}Inativa{% endif %}
+                    </span>
+                </div>
+                <div class="category-actions">
+                    <label class="switch">
+                        <input type="checkbox" {% if c.ativa %}checked{% endif %}
+                            onchange="toggleCategoria('{{ c.id }}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <span class="empty-icon">📂</span>
+            <h3>Nenhuma categoria disponível</h3>
+            <p>Entre em contato com o administrador para configurar categorias</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function toggleCategoria(id, ativa) {
+        try {
+            const response = await fetch(`/pizzaria/api/categorias/${id}/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ativa })
+            });
+
+            if (response.ok) {
+                alert('Categoria atualizada com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao atualizar categoria');
+            }
+        } catch (error) {
+            alert('Erro de conexão');
+        }
+    }
+
+    function openModalNovaCategoria() {
+        document.getElementById('novaCatNome').value = '';
+        document.getElementById('novaCatIcone').value = '';
+        document.getElementById('modalNovaCategoria').style.display = 'flex';
+    }
+
+    function closeModalNovaCategoria() {
+        document.getElementById('modalNovaCategoria').style.display = 'none';
+    }
+
+    async function salvarNovaCategoria() {
+        const nome = document.getElementById('novaCatNome').value.trim();
+        const icone = document.getElementById('novaCatIcone').value.trim();
+
+        if (!nome) {
+            alert('Nome é obrigatório');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pizzaria/api/categorias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, icone })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Categoria criada com sucesso!');
+                closeModalNovaCategoria();
+                location.reload();
+            } else {
+                alert('Erro ao criar categoria: ' + result.error);
+            }
+        } catch (error) {
+            alert('Erro ao criar categoria: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}
+
+<!-- Modal Nova Categoria -->
+<div class="modal-overlay" id="modalNovaCategoria" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Nova Categoria</h3>
+            <button class="modal-close" onclick="closeModalNovaCategoria()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input type="text" class="form-input" id="novaCatNome" placeholder="Ex: Pizzas, Bebidas">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ícone</label>
+                <input type="text" class="form-input" id="novaCatIcone" placeholder="Ex: 🍕, 🥤" maxlength="2">
+            </div>
+            <p style="font-size: 12px; color: #6b7280;">Máximo de 15 categorias por pizzaria</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModalNovaCategoria()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarNovaCategoria()">Salvar</button>
+        </div>
+    </div>
+</div>
+
+{% block styles %}
+<style>
+    .categories-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .list-section {
+        margin-bottom: 32px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .section-header h2 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .section-header p {
+        color: #6b7280;
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .category-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    .category-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .category-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .category-icon {
+        font-size: 32px;
+    }
+
+    .category-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .category-status {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+
+    .category-status.active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .category-status.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .category-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Switch */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #d1d5db;
+        transition: 0.3s;
+        border-radius: 28px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    input:checked+.slider {
+        background: #ef4444;
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(24px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .empty-state p {
+        font-size: 14px;
+        color: #6b7280;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #6b7280;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        transition: color 0.2s ease;
+    }
+
+    .modal-close:hover {
+        color: #1f2937;
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+</style>
+{% endblock %}

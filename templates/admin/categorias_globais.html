@@ -1,0 +1,404 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Categorias Globais{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="page-header">
+        <h1>Categorias Globais</h1>
+        <p>Gerencie as categorias disponíveis para todas as pizzarias</p>
+    </div>
+
+    {% if erro %}
+    <div class="alert alert-danger">
+        <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Nova Categoria</h3>
+        </div>
+        <div class="card-body">
+            <form id="formCategoria">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="nome">Nome da Categoria *</label>
+                            <input type="text" class="form-control" id="nome" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="icone">Ícone</label>
+                            <input type="text" class="form-control" id="icone" value="🍕" maxlength="2">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="sort_order">Ordem</label>
+                            <input type="number" class="form-control" id="sort_order" value="0" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="parent_id">Categoria Pai</label>
+                            <select class="form-control" id="parent_id">
+                                <option value="">Nenhuma (Principal)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="ativa" checked>
+                                <span class="checkmark"></span>
+                                Ativa
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Adicionar Categoria
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Categorias Cadastradas</h3>
+            <button class="btn btn-secondary" onclick="carregarCategorias()">
+                <i class="fas fa-sync"></i> Atualizar
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table" id="tabelaCategorias">
+                    <thead>
+                        <tr>
+                            <th>Ícone</th>
+                            <th>Nome</th>
+                            <th>Categoria Pai</th>
+                            <th>Ordem</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                Carregando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar -->
+<div class="modal" id="modalEditar" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h4>Editar Categoria</h4>
+            <button class="modal-close" onclick="fecharModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="formEditar">
+                <input type="hidden" id="edit_id">
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" class="form-control" id="edit_nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Ícone</label>
+                    <input type="text" class="form-control" id="edit_icone" maxlength="2">
+                </div>
+                <div class="form-group">
+                    <label>Ordem</label>
+                    <input type="number" class="form-control" id="edit_sort_order" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Categoria Pai</label>
+                    <select class="form-control" id="edit_parent_id">
+                        <option value="">Nenhuma (Principal)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="edit_ativa">
+                        <span class="checkmark"></span>
+                        Ativa
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarEdicao()">Salvar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let categorias = [];
+
+// Carregar na inicialização
+document.addEventListener('DOMContentLoaded', carregarCategorias);
+
+// Carregar categorias
+async function carregarCategorias() {
+    try {
+        const res = await fetch('/admin/api/categorias-globais');
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            categorias = data.categorias;
+            atualizarTabela();
+            atualizarSelects();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    } catch (e) {
+        alert('Erro ao carregar: ' + e.message);
+    }
+}
+
+// Atualizar tabela
+function atualizarTabela() {
+    const tbody = document.querySelector('#tabelaCategorias tbody');
+    
+    if (categorias.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma categoria</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = categorias.map(cat => {
+        const pai = cat.parent_id ? categorias.find(c => c.id === cat.parent_id) : null;
+        return `
+            <tr data-id="${cat.id}">
+                <td>${cat.icone || '🍕'}</td>
+                <td>
+                    ${cat.nome}
+                    ${cat.parent_id ? '<br><small class="text-muted">Subcategoria</small>' : ''}
+                </td>
+                <td>${pai ? pai.nome : '-'}</td>
+                <td>${cat.sort_order || 0}</td>
+                <td>
+                    <span class="badge badge-${cat.ativa ? 'success' : 'danger'}">
+                        ${cat.ativa ? 'Ativa' : 'Inativa'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="editarCategoria('${cat.id}')">✏️</button>
+                    <button class="btn btn-sm btn-${cat.ativa ? 'warning' : 'success'}" onclick="toggleStatus('${cat.id}', ${cat.ativa})">
+                        ${cat.ativa ? '⏸️' : '▶️'}
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirCategoria('${cat.id}')">🗑️</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Atualizar selects
+function atualizarSelects() {
+    const principais = categorias.filter(c => !c.parent_id);
+    const options = '<option value="">Nenhuma (Principal)</option>' + 
+        principais.map(c => `<option value="${c.id}">${c.icone} ${c.nome}</option>`).join('');
+    
+    document.getElementById('parent_id').innerHTML = options;
+    document.getElementById('edit_parent_id').innerHTML = options;
+}
+
+// Criar categoria
+document.getElementById('formCategoria').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const dados = {
+        nome: document.getElementById('nome').value,
+        icone: document.getElementById('icone').value || '🍕',
+        sort_order: parseInt(document.getElementById('sort_order').value) || 0,
+        parent_id: document.getElementById('parent_id').value || null,
+        ativa: document.getElementById('ativa').checked
+    };
+    
+    try {
+        const res = await fetch('/admin/api/categorias-globais', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(dados)
+        });
+        
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            alert('Criada com sucesso!');
+            document.getElementById('formCategoria').reset();
+            document.getElementById('icone').value = '🍕';
+            document.getElementById('sort_order').value = '0';
+            document.getElementById('ativa').checked = true;
+            await carregarCategorias();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    } catch (e) {
+        alert('Erro: ' + e.message);
+    }
+});
+
+// Editar
+function editarCategoria(id) {
+    const cat = categorias.find(c => c.id === id);
+    if (!cat) return;
+    
+    document.getElementById('edit_id').value = cat.id;
+    document.getElementById('edit_nome').value = cat.nome;
+    document.getElementById('edit_icone').value = cat.icone || '🍕';
+    document.getElementById('edit_sort_order').value = cat.sort_order || 0;
+    document.getElementById('edit_parent_id').value = cat.parent_id || '';
+    document.getElementById('edit_ativa').checked = cat.ativa;
+    
+    document.getElementById('modalEditar').style.display = 'flex';
+}
+
+// Salvar edição
+async function salvarEdicao() {
+    const id = document.getElementById('edit_id').value;
+    const dados = {
+        nome: document.getElementById('edit_nome').value,
+        icone: document.getElementById('edit_icone').value || '🍕',
+        sort_order: parseInt(document.getElementById('edit_sort_order').value) || 0,
+        parent_id: document.getElementById('edit_parent_id').value || null,
+        ativa: document.getElementById('edit_ativa').checked
+    };
+    
+    try {
+        const res = await fetch(`/admin/api/categorias-globais/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(dados)
+        });
+        
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            alert('Atualizada com sucesso!');
+            fecharModal();
+            await carregarCategorias();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    } catch (e) {
+        alert('Erro: ' + e.message);
+    }
+}
+
+// Toggle status
+async function toggleStatus(id, statusAtual) {
+    try {
+        const res = await fetch(`/admin/api/categorias-globais/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ativa: !statusAtual})
+        });
+        
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            await carregarCategorias();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    } catch (e) {
+        alert('Erro: ' + e.message);
+    }
+}
+
+// Excluir
+async function excluirCategoria(id) {
+    if (!confirm('Tem certeza?')) return;
+    
+    try {
+        const res = await fetch(`/admin/api/categorias-globais/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            alert('Excluída com sucesso!');
+            await carregarCategorias();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    } catch (e) {
+        alert('Erro: ' + e.message);
+    }
+}
+
+function fecharModal() {
+    document.getElementById('modalEditar').style.display = 'none';
+}
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+}
+.modal-header {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-body {
+    padding: 16px;
+}
+.modal-footer {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+</style>
+{% endblock %}

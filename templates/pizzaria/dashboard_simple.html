@@ -1,0 +1,304 @@
+{% extends "pizzaria/base_simple.html" %}
+
+{% block title %}Início{% endblock %}
+{% block page_title %}Bem-vindo{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <div class="welcome-card">
+        <h2>👋 Olá, {{ pizzaria.nome }}!</h2>
+        <p>Bem-vindo ao seu painel de gerenciamento. Aqui você pode gerenciar seus produtos, categorias, cupons e
+            configurações de forma simples.</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🍕</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_produtos }}</div>
+            <div class="stat-label">Produtos</div>
+        </div>
+        <a href="/pizzaria/cardapio" class="stat-action">Gerenciar →</a>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">📂</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_categorias }}</div>
+            <div class="stat-label">Categorias</div>
+        </div>
+        <a href="/pizzaria/categorias" class="stat-action">Gerenciar →</a>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-content">
+            <div class="stat-number">{{ total_cupons }}</div>
+            <div class="stat-label">Cupons</div>
+        </div>
+        <a href="/pizzaria/cupons" class="stat-action">Gerenciar →</a>
+    </div>
+</div>
+
+<div class="quick-actions-section">
+    <h2>O que você quer fazer?</h2>
+    <div class="actions-grid">
+        <a href="/pizzaria/cardapio" class="action-card primary">
+            <div class="action-icon">➕</div>
+            <div class="action-content">
+                <h3>Adicionar Produto</h3>
+                <p>Cadastre novos produtos no seu cardápio</p>
+            </div>
+        </a>
+
+        <a href="/pizzaria/categorias" class="action-card">
+            <div class="action-icon">📂</div>
+            <div class="action-content">
+                <h3>Gerenciar Categorias</h3>
+                <p>Organize seus produtos em categorias</p>
+            </div>
+        </a>
+
+        <a href="/pizzaria/cupons" class="action-card">
+            <div class="action-icon">🎫</div>
+            <div class="action-content">
+                <h3>Gerenciar Cupons</h3>
+                <p>Edite e crie descontos para seus clientes</p>
+            </div>
+        </a>
+
+        <a href="/pizzaria/configuracoes" class="action-card">
+            <div class="action-icon">⚙️</div>
+            <div class="action-content">
+                <h3>Configurações</h3>
+                <p>Personalize sua pizzaria</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="help-section">
+    <div class="help-card">
+        <h3>💡 Precisa de ajuda?</h3>
+        <p>Se você tiver alguma dúvida sobre como usar o sistema, entre em contato com o suporte.</p>
+        <div class="help-buttons">
+            <a href="https://wa.me/5512991306213" target="_blank" class="btn btn-support">
+                📱 Suporte WhatsApp
+            </a>
+            <a href="/{{ pizzaria.slug }}" target="_blank" class="btn btn-secondary">Ver seu site →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .welcome-section {
+        margin-bottom: 32px;
+    }
+
+    .welcome-card {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        padding: 32px;
+        border-radius: 12px;
+    }
+
+    .welcome-card h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .welcome-card p {
+        font-size: 16px;
+        opacity: 0.9;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-icon {
+        font-size: 48px;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    .stat-action {
+        font-size: 14px;
+        font-weight: 500;
+        color: #ef4444;
+    }
+
+    .quick-actions-section {
+        margin-bottom: 32px;
+    }
+
+    .quick-actions-section h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #1f2937;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+
+    .action-card:hover {
+        border-color: #ef4444;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-card.primary {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+
+    .action-icon {
+        font-size: 32px;
+    }
+
+    .action-content {
+        flex: 1;
+    }
+
+    .action-content h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .action-content p {
+        font-size: 14px;
+        opacity: 0.8;
+    }
+
+    .help-section {
+        margin-bottom: 32px;
+    }
+
+    .help-card {
+        background: #dbeafe;
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid #bfdbfe;
+    }
+
+    .help-card h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #1e40af;
+    }
+
+    .help-card p {
+        font-size: 14px;
+        color: #1e40af;
+        margin-bottom: 16px;
+    }
+
+    .help-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .btn-support {
+        background: #25D366;
+        color: white;
+        border: none;
+    }
+
+    .btn-support:hover {
+        background: #128C7E;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #1e40af;
+        border: 2px solid #bfdbfe;
+    }
+
+    .btn-secondary:hover {
+        background: #bfdbfe;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

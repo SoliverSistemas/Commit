@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>Admin | Login</title>
@@ -7,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/login.css') }}">
 </head>
+
 <body>
     <div class="container">
         <div class="card">
@@ -19,7 +21,7 @@
                 {{ erro }}
             </div>
             {% endif %}
-            <form method="POST" class="form">
+            <form method="POST" action="/admin/login" class="form">
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" name="email" placeholder="Digite seu email" required>
@@ -38,4 +40,5 @@
         </div>
     </div>
 </body>
+
 </html>

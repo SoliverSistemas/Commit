@@ -35,7 +35,9 @@
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -321,12 +323,12 @@ body {
 
 .about-content p {
     font-size: clamp(0.875rem, 2vw, 1rem);
-    color: var(--text-soft);
+    color: var(--title-color);
     line-height: 1.6;
 }
 
 .about-content p strong {
-    color: var(--text-color);
+    color: var(--title-color);
 }
 
 /* ============================================
@@ -1057,78 +1059,78 @@ body {
     .main-content {
         padding: 12px;
     }
-    
+
     .header {
         padding: 12px;
         margin-bottom: 12px;
     }
-    
+
     .header-top {
         margin-bottom: 12px;
     }
-    
+
     .brand-name {
         font-size: 1.125rem;
     }
-    
+
     .header-actions {
         gap: 6px;
     }
-    
+
     .btn-suggest,
     .btn-repeat {
         padding: 8px 12px;
         font-size: 0.75rem;
     }
-    
+
     .btn-suggest .icon,
     .btn-repeat .icon {
         display: none;
     }
-    
+
     .info-bar {
         padding: 10px 12px;
         gap: 8px 16px;
     }
-    
+
     .info-item {
         font-size: 0.75rem;
     }
-    
+
     .about-section {
         margin-bottom: 12px;
     }
-    
+
     .about-image {
         height: 140px;
     }
-    
+
     .about-content {
         padding: 16px;
     }
-    
+
     .product-image {
         width: 80px;
         height: 80px;
     }
-    
+
     .product-details {
         padding: 10px 12px;
     }
-    
+
     .product-name {
         font-size: 0.9375rem;
     }
-    
+
     .product-description {
         font-size: 0.75rem;
         -webkit-line-clamp: 1;
     }
-    
+
     .product-price {
         font-size: 1rem;
     }
-    
+
     .btn-view-more {
         padding: 6px 12px;
         font-size: 0.8125rem;
@@ -1143,6 +1145,7 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

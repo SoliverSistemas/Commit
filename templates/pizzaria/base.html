@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Painel{% endblock %} | Pizzaria</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f5f5f5; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 260px; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 24px; }
+        .sidebar .logo { margin-bottom: 32px; }
+        .sidebar .logo h2 { font-size: 20px; }
+        .sidebar nav { display: flex; flex-direction: column; gap: 8px; }
+        .sidebar nav a { color: rgba(255,255,255,0.8); text-decoration: none; padding: 12px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: rgba(255,255,255,0.1); color: white; }
+        .main-content { flex: 1; padding: 32px; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 28px; font-weight: 700; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card-header { padding: 20px 24px; border-bottom: 1px solid #e5e7eb; }
+        .card-title { font-size: 18px; font-weight: 600; }
+        .card-body { padding: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 14px; }
+        .form-input { width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 500; }
+        .btn-primary { background: #ef4444; color: white; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>{{ pizzaria.nome if pizzaria else 'Pizzaria' }}</h2>
+            </div>
+            <nav>
+                <a href="/pizzaria/dashboard">Dashboard</a>
+                <a href="/pizzaria/produtos">Produtos</a>
+                <a href="/pizzaria/categorias">Categorias</a>
+                <a href="/pizzaria/cupons">Cupons</a>
+                <a href="/pizzaria/configuracoes" class="active">Configurações</a>
+            </nav>
+        </aside>
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
